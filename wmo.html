@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title data-i18n="document.wmo.title">WMO PATHFINDER</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="theme.js" defer></script>
+</head>
+<body data-layout="data/WMO_layout.csv" data-grid-size="43">
+  <main class="app-shell">
+    <section class="phone-frame">
+      <header class="top-banner">
+        <a class="back-link" href="index.html" aria-label="Back to home" title="Back to home" data-i18n-aria-label="common.backToHome" data-i18n-title="common.backToHome">
+          <svg class="back-link-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M14.5 6.5L9 12l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+        <p class="mini-label" data-i18n="planner.miniLabel">Multi-picker route planner</p>
+        <h1 data-i18n="document.wmo.title">WMO PATHFINDER</h1>
+        <span id="statusChip" class="status-chip" data-i18n="status.loading">Loading stored layout...</span>
+      </header>
+
+      <section class="controls-panel">
+        <div class="planner-options">
+          <label class="option-field">
+            <span data-i18n="planner.routeGoal">Route goal</span>
+            <select id="routeModeSelect" aria-label="Route goal">
+              <option value="balanced" data-i18n="routeMode.balanced">Balanced</option>
+              <option value="fastest" data-i18n="routeMode.fastest">Fastest</option>
+              <option value="least-turns" data-i18n="routeMode.leastTurns">Least turns</option>
+            </select>
+          </label>
+
+          <label class="option-field">
+            <span data-i18n="planner.zoneConstraint">Zone constraint</span>
+            <select id="zoneConstraintSelect" aria-label="Zone constraint">
+              <option value="none" data-i18n="zone.none">None</option>
+              <option value="prefer-top" data-i18n="zone.preferTop">Prefer top zone</option>
+              <option value="prefer-bottom" data-i18n="zone.preferBottom">Prefer bottom zone</option>
+              <option value="avoid-top" data-i18n="zone.avoidTop">Avoid top zone</option>
+              <option value="avoid-bottom" data-i18n="zone.avoidBottom">Avoid bottom zone</option>
+            </select>
+          </label>
+
+          <label class="option-field wide">
+            <span data-i18n="planner.trafficWindow">Traffic window</span>
+            <select id="trafficTimeSelect" aria-label="Traffic window">
+              <option value="morning" data-i18n="traffic.morning">Morning</option>
+              <option value="midday" data-i18n="traffic.midday">Midday</option>
+              <option value="afternoon" data-i18n="traffic.afternoon">Afternoon</option>
+            </select>
+          </label>
+
+          <label class="option-toggle wide" for="heatmapToggle">
+            <input id="heatmapToggle" type="checkbox" checked />
+            <span data-i18n="planner.showHeatmap">Show mild traffic heatmap</span>
+          </label>
+
+          <button id="markLastToggle" class="action-button ghost compact" type="button" aria-pressed="false" data-i18n="planner.markFinal">MARK FINAL DROP</button>
+        </div>
+
+        <div class="legend">
+          <span><i class="legend-box free"></i><span data-i18n="legend.free">Free</span></span>
+          <span><i class="legend-box start"></i><span data-i18n="legend.start">Start (S)</span></span>
+          <span><i class="legend-box goal"></i><span data-i18n="legend.stops">Stops</span></span>
+          <span><i class="legend-box last"></i><span data-i18n="legend.last">Last (L)</span></span>
+          <span><i class="legend-box path"></i><span data-i18n="legend.path">Best route</span></span>
+        </div>
+
+        <p class="hint-text" data-i18n="planner.hint">
+          Click one free cell to place the start, then click stops normally.
+          Double-click any stop to mark it as the final location (L).
+        </p>
+
+        <p id="routeSummary" class="route-summary" data-i18n="planner.summaryEmpty">
+          Choose a start and pick locations to build a route.
+        </p>
+
+        <div class="route-metrics" aria-live="polite">
+          <article class="metric-pill">
+            <span class="metric-label" data-i18n="planner.metricEffort">Effort</span>
+            <strong id="metricEffort" class="metric-value">-</strong>
+          </article>
+          <article class="metric-pill">
+            <span class="metric-label" data-i18n="planner.metricTurns">Turns</span>
+            <strong id="metricTurns" class="metric-value">-</strong>
+          </article>
+          <article class="metric-pill">
+            <span class="metric-label" data-i18n="planner.metricTime">Time range</span>
+            <strong id="metricTime" class="metric-value">-</strong>
+          </article>
+        </div>
+
+        <p class="estimate-note" data-i18n="planner.estimateNote">Estimates are planning guidance only (not exact distance).</p>
+      </section>
+
+      <section class="grid-panel">
+        <div id="grid" class="grid-board" aria-label="43 by 43 interactive pathfinding grid"></div>
+      </section>
+
+      <footer class="button-bar">
+        <button id="goButton" class="action-button primary" type="button" data-i18n="planner.go">GO</button>
+        <button id="undoButton" class="action-button ghost" type="button" data-i18n="planner.undo">UNDO LAST PICK</button>
+        <button id="resetButton" class="action-button secondary" type="button" data-i18n="planner.reset">RESET</button>
+      </footer>
+
+      <section id="resetDialog" class="reset-dialog" hidden>
+        <div class="reset-dialog-card">
+          <p class="reset-dialog-title" data-i18n="reset.title">Reset options</p>
+          <p class="reset-dialog-text" data-i18n="reset.helper">Choose what to clear.</p>
+          <div class="reset-dialog-actions">
+            <button id="clearRouteButton" class="action-button ghost compact" type="button" data-i18n="reset.routeOnly">Clear route only</button>
+            <button id="clearAllButton" class="action-button secondary compact" type="button" data-i18n="reset.all">Clear all picks</button>
+            <button id="cancelResetButton" class="action-button primary compact" type="button" data-i18n="reset.cancel">Cancel</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>

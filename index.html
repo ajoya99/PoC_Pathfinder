@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title data-i18n="document.home.title">Multi-picker Route Planner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+  <script src="theme.js" defer></script>
+</head>
+<body>
+  <main class="landing-shell">
+    <section class="phone-frame landing-frame">
+      <button class="theme-toggle" type="button" data-theme-toggle aria-label="Switch palette" title="Switch palette">◐</button>
+      <button class="lang-toggle" type="button" data-language-toggle aria-label="Switch to Dutch" title="Switch to Dutch">NL</button>
+      <div class="landing-logo">
+        <img src="data/logo_medux.png" alt="Medux logo" data-i18n-alt="common.logoAlt" />
+      </div>
+      <p class="mini-label" data-i18n="home.miniLabel">Distribution routing hub</p>
+      <h1 class="landing-title" data-i18n="home.title">Multi-picker Route Planner</h1>
+      <p class="landing-subtitle" data-i18n="home.subtitle">Medux's Distribution Center in Zwijndrecht</p>
+
+      <div id="landingActions" class="landing-actions">
+        <a class="landing-button primary" href="zv.html" data-i18n="home.zvButton">ZV Pathfinder</a>
+        <a class="landing-button secondary" href="wmo.html" data-i18n="home.wmoButton">WMO Pathfinder</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

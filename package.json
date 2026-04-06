@@ -1,0 +1,16 @@
+{
+  "name": "poc-pathfinder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static picker route planner with a minimal local Express server.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
