@@ -55,3 +55,37 @@ http://192.168.1.35:8080
 ```
 
 If it does not load, allow Node.js through Windows Firewall for private networks.
+
+## Publish to a URL with GitHub Pages
+
+This project is configured to deploy as a static site with GitHub Pages.
+
+How it works:
+
+1. Push to `main`
+2. GitHub Actions deploys the static files
+3. GitHub gives you a URL like:
+
+```text
+https://YOUR_GITHUB_USERNAME.github.io/PoC_Pathfinder/
+```
+
+For this repository, the expected URL format is:
+
+```text
+https://ajoya99.github.io/PoC_Pathfinder/
+```
+
+To enable it the first time:
+
+1. Open your GitHub repository
+2. Go to Settings > Pages
+3. Under Source, choose GitHub Actions
+
+After the workflow finishes, open the GitHub Pages URL on your phone browser.
+
+Notes:
+
+- No Azure deployment token is needed
+- The local Express server is only for local testing
+- GitHub Pages is the easiest way to get a stable shareable URL for this PoC

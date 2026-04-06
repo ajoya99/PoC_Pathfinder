@@ -1,8 +1,8 @@
 {
-  "name": "phone-zv-pathfinder",
+  "name": "poc-pathfinder",
   "version": "1.0.0",
   "private": true,
-  "description": "Static route planner hosted with a minimal Express server for Azure App Service.",
+  "description": "Static picker route planner with a minimal local Express server.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
