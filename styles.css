@@ -474,6 +474,24 @@ input {
   --cell-fill: var(--path);
 }
 
+.grid-cell.route.heat-1 {
+  box-shadow:
+    inset 0 0 0 999px rgba(255, 226, 125, 0.2),
+    0 0 0 0.35px var(--path);
+}
+
+.grid-cell.route.heat-2 {
+  box-shadow:
+    inset 0 0 0 999px rgba(255, 190, 94, 0.28),
+    0 0 0 0.35px var(--path);
+}
+
+.grid-cell.route.heat-3 {
+  box-shadow:
+    inset 0 0 0 999px rgba(255, 146, 87, 0.34),
+    0 0 0 0.35px var(--path);
+}
+
 .grid-cell.start {
   --cell-fill: var(--start);
   color: #4a3400;
@@ -484,9 +502,45 @@ input {
   color: #4a3400;
 }
 
+.grid-cell.goal.heat-1 {
+  box-shadow:
+    inset 0 0 0 999px rgba(255, 226, 125, 0.2),
+    0 0 0 0.35px var(--goal);
+}
+
+.grid-cell.goal.heat-2 {
+  box-shadow:
+    inset 0 0 0 999px rgba(255, 190, 94, 0.28),
+    0 0 0 0.35px var(--goal);
+}
+
+.grid-cell.goal.heat-3 {
+  box-shadow:
+    inset 0 0 0 999px rgba(255, 146, 87, 0.34),
+    0 0 0 0.35px var(--goal);
+}
+
 .grid-cell.goal-last {
   --cell-fill: var(--last);
   color: #2f1246;
+}
+
+.grid-cell.goal-last.heat-1 {
+  box-shadow:
+    inset 0 0 0 999px rgba(255, 226, 125, 0.2),
+    0 0 0 0.35px var(--last);
+}
+
+.grid-cell.goal-last.heat-2 {
+  box-shadow:
+    inset 0 0 0 999px rgba(255, 190, 94, 0.28),
+    0 0 0 0.35px var(--last);
+}
+
+.grid-cell.goal-last.heat-3 {
+  box-shadow:
+    inset 0 0 0 999px rgba(255, 146, 87, 0.34),
+    0 0 0 0.35px var(--last);
 }
 
 .grid-cell.goal-unreachable {
