@@ -63,7 +63,7 @@ This project is configured to deploy as a static site with GitHub Pages.
 How it works:
 
 1. Push to `main`
-2. GitHub Actions deploys the static files
+2. GitHub Actions publishes files to the `gh-pages` branch
 3. GitHub gives you a URL like:
 
 ```text
@@ -80,7 +80,8 @@ To enable it the first time:
 
 1. Open your GitHub repository
 2. Go to Settings > Pages
-3. Under Source, choose GitHub Actions
+3. Under Source, choose Deploy from a branch
+4. Branch: `gh-pages` and folder: `/ (root)`
 
 After the workflow finishes, open the GitHub Pages URL on your phone browser.
 
