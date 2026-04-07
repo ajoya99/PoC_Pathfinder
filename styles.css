@@ -580,6 +580,15 @@ input {
   margin-top: auto;
 }
 
+.button-bar .action-button {
+  font-size: 0.66rem;
+  letter-spacing: 0.03em;
+  padding: 10px 8px;
+  line-height: 1.2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .reset-dialog {
   position: absolute;
   inset: 0;
