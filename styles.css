@@ -411,6 +411,10 @@ input {
   padding: 10px;
 }
 
+.grid-panel .hint-text {
+  margin: 0 0 8px;
+}
+
 .grid-board {
   width: 100%;
   aspect-ratio: 1;
