@@ -249,17 +249,6 @@ input {
   letter-spacing: 0.08em;
 }
 
-.status-chip {
-  display: inline-flex;
-  align-self: center;
-  margin-top: 10px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--soft-accent-bg);
-  color: var(--soft-accent-text);
-  font-size: 0.78rem;
-}
-
 .controls-panel {
   padding: 12px;
 }
@@ -356,17 +345,10 @@ input {
   line-height: 1.4;
 }
 
-.route-summary {
-  margin: 10px 0 0;
-  color: var(--soft-accent-text);
-  font-size: 0.78rem;
-  line-height: 1.35;
-}
-
 .route-metrics {
   margin-top: 10px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -410,6 +392,14 @@ input {
 
 .grid-panel .hint-text {
   margin: 0 0 12px;
+}
+
+.pointer-coords {
+  margin: 0 0 8px;
+  color: var(--soft-accent-text);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .grid-board {
@@ -499,6 +489,27 @@ input {
 .grid-cell.start {
   --cell-fill: var(--start);
   color: #4a3400;
+}
+
+.grid-cell.start.heat-1 {
+  background:
+    radial-gradient(circle at center, var(--start) 0 60%, transparent 64%),
+    linear-gradient(rgba(255, 226, 125, 0.24), rgba(255, 226, 125, 0.24));
+  box-shadow: 0 0 0 0.35px var(--start);
+}
+
+.grid-cell.start.heat-2 {
+  background:
+    radial-gradient(circle at center, var(--start) 0 60%, transparent 64%),
+    linear-gradient(rgba(255, 190, 94, 0.32), rgba(255, 190, 94, 0.32));
+  box-shadow: 0 0 0 0.35px var(--start);
+}
+
+.grid-cell.start.heat-3 {
+  background:
+    radial-gradient(circle at center, var(--start) 0 60%, transparent 64%),
+    linear-gradient(rgba(255, 146, 87, 0.4), rgba(255, 146, 87, 0.4));
+  box-shadow: 0 0 0 0.35px var(--start);
 }
 
 .grid-cell.goal {

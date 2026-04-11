@@ -24,6 +24,44 @@ const EFFORT_MODEL = {
   maxRangeFactor: 1.2,
 };
 
+// Layout calibration references from plan measurements.
+// Coordinates are 1-based in Col-Row form, with edge anchors.
+const DISTANCE_CALIBRATION = {
+  ZV: {
+    references: [
+      {
+        from: { col: 31, row: 31, edge: "bottom" },
+        to: { col: 31, row: 7, edge: "top" },
+        meters: 70,
+      },
+      {
+        from: { col: 6, row: 31, edge: "left" },
+        to: { col: 31, row: 31, edge: "right" },
+        meters: 47,
+      },
+      {
+        from: { col: 10, row: 28, edge: "bottom" },
+        to: { col: 10, row: 11, edge: "top" },
+        meters: 40,
+      },
+      {
+        from: { col: 10, row: 11, edge: "left" },
+        to: { col: 18, row: 11, edge: "right" },
+        meters: 12,
+      },
+      {
+        from: { col: 19, row: 7, edge: "left" },
+        to: { col: 31, row: 8, edge: "right" },
+        meters: 25,
+      },
+    ],
+    fallback: {
+      horizontalMetersPerCell: 1.8,
+      verticalMetersPerCell: 2.6,
+    },
+  },
+};
+
 // Phase 1 congestion intelligence for picker routing.
 // Coordinates are zero-based and can be tuned as operations evolve.
 const CONGESTION_INTELLIGENCE = {
@@ -128,20 +166,23 @@ const undoButton = document.getElementById("undoButton");
 const resetButton = document.getElementById("resetButton");
 const statusChip = document.getElementById("statusChip");
 const routeSummary = document.getElementById("routeSummary");
+const metricTime = document.getElementById("metricTime");
+const metricMeters = document.getElementById("metricMeters");
 const metricEffort = document.getElementById("metricEffort");
 const metricTurns = document.getElementById("metricTurns");
-const metricTime = document.getElementById("metricTime");
 const routeModeSelect = document.getElementById("routeModeSelect");
 const zoneConstraintSelect = document.getElementById("zoneConstraintSelect");
 const trafficTimeSelect = document.getElementById("trafficTimeSelect");
 const heatmapToggle = document.getElementById("heatmapToggle");
 const markLastToggle = document.getElementById("markLastToggle");
+const pointerCoords = document.getElementById("pointerCoords");
 const resetDialog = document.getElementById("resetDialog");
 const clearRouteButton = document.getElementById("clearRouteButton");
 const clearAllButton = document.getElementById("clearAllButton");
 const cancelResetButton = document.getElementById("cancelResetButton");
 const t = (key, params = {}) =>
   typeof window.__meduxTranslate === "function" ? window.__meduxTranslate(key, params) : key;
+const DISTANCE_SCALE = resolveDistanceScale(LAYOUT_CODE);
 
 let currentGridSize = DEFAULT_GRID_SIZE;
 let gridData = buildDefaultGrid(currentGridSize);
@@ -475,6 +516,7 @@ function runPlanner() {
       const zonePenalty = computeZonePenalty(result.path, zoneConstraint);
       const congestionPenalty = computeCongestionPenalty(result.path, trafficWindow);
       const effortUnits = computeEffortUnits(result.path, result.turns, zonePenalty, congestionPenalty);
+      const distanceMeters = computePathDistanceMeters(result.path);
       const timeRange = computeEstimatedTimeRangeSeconds(effortUnits, routeMode);
 
       return {
@@ -482,6 +524,7 @@ function runPlanner() {
         zonePenalty,
         congestionPenalty,
         effortUnits,
+        distanceMeters,
         ...timeRange,
         score: computeRouteScore(result, routeMode, effortUnits),
       };
@@ -526,6 +569,7 @@ function runPlanner() {
     steps: best.steps,
     turns: best.turns,
     effortUnits: best.effortUnits,
+    distanceMeters: best.distanceMeters,
     timeMinSeconds: best.minSeconds,
     timeMaxSeconds: best.maxSeconds,
     score: best.score,
@@ -538,15 +582,7 @@ function runPlanner() {
 
   renderGrid();
   updateRouteSummary();
-  setStatusKey("status.bestRoute", {
-    name: best.name,
-    effort: formatEffort(best.effortUnits),
-    timeRange: formatTimeRange(best.minSeconds, best.maxSeconds),
-    mode: getModeLabel(routeMode),
-    zone: getZoneLabel(zoneConstraint),
-    traffic: getTrafficLabel(trafficWindow),
-    lastNote: lastGoalCell ? t("status.finalLastNote") : "",
-  });
+  setStatusKey("status.routeReady");
 }
 
 function buildMultiStopRoute(strategy) {
@@ -825,6 +861,7 @@ function renderGrid() {
   gridElement.style.gridTemplateColumns = `repeat(${currentGridSize}, 1fr)`;
   gridElement.setAttribute("aria-label", t("grid.aria", { size: currentGridSize }));
   gridElement.innerHTML = "";
+  setPointerCoordsText();
 
   for (let row = 0; row < currentGridSize; row += 1) {
     for (let col = 0; col < currentGridSize; col += 1) {
@@ -834,6 +871,9 @@ function renderGrid() {
       cell.type = "button";
       cell.className = "grid-cell";
       cell.setAttribute("aria-label", t("grid.cellAria", { row: row + 1, col: col + 1, value }));
+      cell.addEventListener("mouseenter", () => setPointerCoordsText(row, col));
+      cell.addEventListener("focus", () => setPointerCoordsText(row, col));
+      cell.addEventListener("pointerdown", () => setPointerCoordsText(row, col));
 
       if (value === 0) {
         cell.classList.add("free");
@@ -1041,6 +1081,11 @@ function formatEffort(value) {
   return t("planner.effortValue", { value: rounded });
 }
 
+function formatDistanceMeters(value) {
+  const rounded = Number(value || 0).toFixed(1);
+  return t("planner.distanceValue", { value: rounded });
+}
+
 function formatTimeRange(minSeconds, maxSeconds) {
   if (maxSeconds < 60) {
     return t("planner.timeSecondsRange", { min: minSeconds, max: maxSeconds });
@@ -1117,6 +1162,27 @@ function computeCongestionPenalty(path, trafficWindow = getTrafficWindow()) {
   return Number(base.toFixed(2));
 }
 
+function computePathDistanceMeters(path) {
+  if (!Array.isArray(path) || path.length < 2) {
+    return 0;
+  }
+
+  let horizontalSteps = 0;
+  let verticalSteps = 0;
+
+  for (let index = 1; index < path.length; index += 1) {
+    const previous = path[index - 1];
+    const current = path[index];
+    horizontalSteps += Math.abs((current.col ?? 0) - (previous.col ?? 0));
+    verticalSteps += Math.abs((current.row ?? 0) - (previous.row ?? 0));
+  }
+
+  const meters =
+    horizontalSteps * DISTANCE_SCALE.horizontalMetersPerCell +
+    verticalSteps * DISTANCE_SCALE.verticalMetersPerCell;
+  return Number(meters.toFixed(2));
+}
+
 function congestionPenaltyForCell(row, col, trafficWindow = getTrafficWindow()) {
   const profile = getCongestionProfile();
   const features = [
@@ -1188,33 +1254,38 @@ function updateRouteSummary() {
 
   if (!lastRouteResult) {
     routeSummary.textContent = t("planner.summaryEmpty");
-    if (metricEffort) {
-      metricEffort.textContent = t("planner.metricEmpty");
+    if (metricTime) {
+      metricTime.textContent = t("planner.metricEmpty");
+    }
+    if (metricMeters) {
+      metricMeters.textContent = t("planner.metricEmpty");
     }
     if (metricTurns) {
       metricTurns.textContent = t("planner.metricEmpty");
     }
-    if (metricTime) {
-      metricTime.textContent = t("planner.metricEmpty");
+    if (metricEffort) {
+      metricEffort.textContent = t("planner.metricEmpty");
     }
     return;
   }
 
   routeSummary.textContent = t("planner.summaryReady", {
-    algorithm: lastRouteResult.algorithm,
     mode: getModeLabel(lastRouteResult.routeMode),
     zone: getZoneLabel(lastRouteResult.zoneConstraint),
     traffic: getTrafficLabel(lastRouteResult.trafficWindow),
   });
 
-  if (metricEffort) {
-    metricEffort.textContent = formatEffort(lastRouteResult.effortUnits);
+  if (metricTime) {
+    metricTime.textContent = formatTimeRange(lastRouteResult.timeMinSeconds, lastRouteResult.timeMaxSeconds);
+  }
+  if (metricMeters) {
+    metricMeters.textContent = formatDistanceMeters(lastRouteResult.distanceMeters);
   }
   if (metricTurns) {
     metricTurns.textContent = String(lastRouteResult.turns);
   }
-  if (metricTime) {
-    metricTime.textContent = formatTimeRange(lastRouteResult.timeMinSeconds, lastRouteResult.timeMaxSeconds);
+  if (metricEffort) {
+    metricEffort.textContent = formatEffort(lastRouteResult.effortUnits);
   }
 }
 
@@ -1231,6 +1302,19 @@ function findUnreachablePickLocations() {
 
 function formatCellLabel(cell) {
   return `R${cell.row + 1}C${cell.col + 1}`;
+}
+
+function setPointerCoordsText(row, col) {
+  if (!pointerCoords) {
+    return;
+  }
+
+  if (typeof row !== "number" || typeof col !== "number") {
+    pointerCoords.textContent = "Pointer: -";
+    return;
+  }
+
+  pointerCoords.textContent = `Pointer: C${col + 1}-R${row + 1}`;
 }
 
 function cellKey(cell) {
@@ -1268,5 +1352,89 @@ function setStatusKey(key, params = {}) {
 }
 
 function setStatus(message) {
-  statusChip.textContent = message;
+  if (statusChip) {
+    statusChip.textContent = message;
+  }
+}
+
+function resolveDistanceScale(layoutCode) {
+  const calibration = DISTANCE_CALIBRATION[layoutCode];
+  if (!calibration?.references?.length) {
+    return {
+      horizontalMetersPerCell: calibration?.fallback?.horizontalMetersPerCell || 1,
+      verticalMetersPerCell: calibration?.fallback?.verticalMetersPerCell || 1,
+    };
+  }
+
+  const references = calibration.references
+    .map((reference) => {
+      const from = edgeAnchorToPoint(reference.from);
+      const to = edgeAnchorToPoint(reference.to);
+      const dx = Math.abs(to.x - from.x);
+      const dy = Math.abs(to.y - from.y);
+      const meters = Number(reference.meters);
+      if (!Number.isFinite(dx) || !Number.isFinite(dy) || !Number.isFinite(meters) || meters <= 0) {
+        return null;
+      }
+      return { dx2: dx * dx, dy2: dy * dy, d2: meters * meters };
+    })
+    .filter(Boolean);
+
+  if (!references.length) {
+    return {
+      horizontalMetersPerCell: calibration.fallback.horizontalMetersPerCell,
+      verticalMetersPerCell: calibration.fallback.verticalMetersPerCell,
+    };
+  }
+
+  let sxx = 0;
+  let syy = 0;
+  let sxy = 0;
+  let bx = 0;
+  let by = 0;
+
+  for (const reference of references) {
+    sxx += reference.dx2 * reference.dx2;
+    syy += reference.dy2 * reference.dy2;
+    sxy += reference.dx2 * reference.dy2;
+    bx += reference.dx2 * reference.d2;
+    by += reference.dy2 * reference.d2;
+  }
+
+  const determinant = sxx * syy - sxy * sxy;
+  if (!Number.isFinite(determinant) || Math.abs(determinant) < 1e-9) {
+    return {
+      horizontalMetersPerCell: calibration.fallback.horizontalMetersPerCell,
+      verticalMetersPerCell: calibration.fallback.verticalMetersPerCell,
+    };
+  }
+
+  const horizontalSquared = (bx * syy - by * sxy) / determinant;
+  const verticalSquared = (by * sxx - bx * sxy) / determinant;
+
+  return {
+    horizontalMetersPerCell: Math.sqrt(Math.max(0.01, horizontalSquared)),
+    verticalMetersPerCell: Math.sqrt(Math.max(0.01, verticalSquared)),
+  };
+}
+
+function edgeAnchorToPoint(anchor) {
+  const col = Number(anchor?.col);
+  const row = Number(anchor?.row);
+  const edge = String(anchor?.edge || "").toLowerCase();
+
+  if (edge === "top") {
+    return { x: col - 0.5, y: row - 1 };
+  }
+  if (edge === "bottom") {
+    return { x: col - 0.5, y: row };
+  }
+  if (edge === "left") {
+    return { x: col - 1, y: row - 0.5 };
+  }
+  if (edge === "right") {
+    return { x: col, y: row - 0.5 };
+  }
+
+  return { x: col - 0.5, y: row - 0.5 };
 }
