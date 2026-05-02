@@ -286,6 +286,16 @@ input {
   accent-color: var(--accent);
 }
 
+.research-mode-toggle.wide {
+  width: 100%;
+}
+
+.research-mode-toggle.is-active {
+  border-color: rgba(88, 180, 255, 0.7);
+  background: rgba(88, 180, 255, 0.18);
+  color: #dff1ff;
+}
+
 .option-field span {
   color: var(--muted);
   font-size: 0.72rem;
@@ -388,6 +398,79 @@ input {
   border: 1px solid var(--line);
   border-radius: 22px;
   padding: 10px;
+}
+
+.research-panel {
+  border: 1px solid var(--soft-accent-border);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(7, 22, 43, 0.42);
+  text-align: left;
+  margin-bottom: 10px;
+}
+
+.research-panel[hidden] {
+  display: none !important;
+}
+
+.research-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.research-title {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--soft-accent-text);
+}
+
+.research-run-label {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.research-timers {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.research-pill {
+  padding: 7px 6px;
+}
+
+.research-actions {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.research-obstruction {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.research-obstruction-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.research-export {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
 }
 
 .grid-panel .hint-text {
@@ -515,6 +598,11 @@ input {
 .grid-cell.goal {
   --cell-fill: var(--goal);
   color: #4a3400;
+}
+
+.grid-cell.goal.goal-complete {
+  --cell-fill: #8de2a8;
+  color: #113722;
 }
 
 .grid-cell.goal.heat-1 {
@@ -705,5 +793,17 @@ input {
 
   .route-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .research-timers,
+  .research-actions,
+  .research-obstruction,
+  .research-obstruction-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .research-export {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

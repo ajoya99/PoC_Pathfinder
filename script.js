@@ -8,6 +8,8 @@ const DIRECTIONS = [
   { dr: 0, dc: -1, key: "L" },
 ];
 const MAX_PICK_LOCATIONS = 12;
+const RESEARCH_STORAGE_KEY = "medux-research-events-v1";
+const RESEARCH_AUTO_EXPORT_EVERY_COMPLETED_ROUTES = 10;
 const EFFORT_MODEL = {
   baseMove: 1,
   centerBandMultiplier: 1.16,
@@ -174,12 +176,24 @@ const routeModeSelect = document.getElementById("routeModeSelect");
 const zoneConstraintSelect = document.getElementById("zoneConstraintSelect");
 const trafficTimeSelect = document.getElementById("trafficTimeSelect");
 const heatmapToggle = document.getElementById("heatmapToggle");
+const researchModeToggle = document.getElementById("researchModeToggle");
 const markLastToggle = document.getElementById("markLastToggle");
 const pointerCoords = document.getElementById("pointerCoords");
 const resetDialog = document.getElementById("resetDialog");
 const clearRouteButton = document.getElementById("clearRouteButton");
 const clearAllButton = document.getElementById("clearAllButton");
 const cancelResetButton = document.getElementById("cancelResetButton");
+const researchRunLabel = document.getElementById("researchRunLabel");
+const researchOverallTimer = document.getElementById("researchOverallTimer");
+const researchSegmentTimer = document.getElementById("researchSegmentTimer");
+const researchStartRouteBtn = document.getElementById("researchStartRouteBtn");
+const researchStartPickBtn = document.getElementById("researchStartPickBtn");
+const researchEndPickBtn = document.getElementById("researchEndPickBtn");
+const researchEndRouteBtn = document.getElementById("researchEndRouteBtn");
+const researchObstructionButtons = Array.from(document.querySelectorAll("[data-research-obstruction]"));
+const researchExportBtn = document.getElementById("researchExportBtn");
+const researchSavedCount = document.getElementById("researchSavedCount");
+const researchPanel = document.getElementById("researchPanel");
 const t = (key, params = {}) =>
   typeof window.__meduxTranslate === "function" ? window.__meduxTranslate(key, params) : key;
 const DISTANCE_SCALE = resolveDistanceScale(LAYOUT_CODE);
@@ -198,11 +212,17 @@ let lastStatusKey = "status.loading";
 let lastStatusParams = {};
 let lastRouteResult = null;
 let showHeatmapOverlay = true;
+let researchEvents = loadResearchEvents();
+let activeResearchRun = null;
+let researchTimerHandle = null;
+let completedStopKeys = new Set();
+let showResearchPanel = false;
 
 bootstrap();
 
 async function bootstrap() {
   showHeatmapOverlay = heatmapToggle?.checked ?? true;
+  showResearchPanel = false;
 
   goButton.addEventListener("click", runPlanner);
   undoButton?.addEventListener("click", undoLastPickLocation);
@@ -247,12 +267,40 @@ async function bootstrap() {
     setStatusKey(showHeatmapOverlay ? "status.heatmapOn" : "status.heatmapOff");
   });
 
+  researchModeToggle?.addEventListener("click", () => {
+    setResearchPanelVisibility(!showResearchPanel);
+  });
+
   markLastToggle?.addEventListener("click", toggleFinalDropPlacementMode);
+  researchStartRouteBtn?.addEventListener("click", startResearchRoute);
+  researchStartPickBtn?.addEventListener("click", startPickingAtCurrentStop);
+  researchEndPickBtn?.addEventListener("click", endPickingAtCurrentStop);
+  researchEndRouteBtn?.addEventListener("click", () => endResearchRoute("completed", "manual-end"));
+  researchObstructionButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      logObstructionEvent(String(button.dataset.researchObstruction || "other"));
+    });
+  });
+  researchExportBtn?.addEventListener("click", () => exportResearchDataCsv("manual"));
   window.addEventListener("medux:languagechange", handleLanguageChange);
 
   renderGrid();
+  updateResearchPanel();
   updateRouteSummary();
   await loadStoredLayout();
+}
+
+function setResearchPanelVisibility(isVisible) {
+  showResearchPanel = Boolean(isVisible);
+
+  if (researchPanel) {
+    researchPanel.hidden = !showResearchPanel;
+  }
+
+  if (researchModeToggle) {
+    researchModeToggle.classList.toggle("is-active", showResearchPanel);
+    researchModeToggle.setAttribute("aria-pressed", showResearchPanel ? "true" : "false");
+  }
 }
 
 async function loadStoredLayout() {
@@ -375,6 +423,403 @@ function clearRouteOnly() {
   setStatusKey("status.routeCleared");
 }
 
+function loadResearchEvents() {
+  try {
+    const raw = window.localStorage.getItem(RESEARCH_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_error) {
+    return [];
+  }
+}
+
+function saveResearchEvents() {
+  try {
+    window.localStorage.setItem(RESEARCH_STORAGE_KEY, JSON.stringify(researchEvents));
+    return true;
+  } catch (_error) {
+    setStatusKey("research.storageSaveFailed");
+    return false;
+  }
+}
+
+function isResearchRunActive() {
+  return Boolean(activeResearchRun && activeResearchRun.status === "active");
+}
+
+function createRunId() {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(
+    now.getMinutes(),
+  )}-${pad(now.getSeconds())}_${LAYOUT_CODE}`;
+}
+
+function formatDuration(milliseconds) {
+  const totalSeconds = Math.max(0, Math.floor(Number(milliseconds || 0) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function serializeCell(cell) {
+  if (!cell || typeof cell.row !== "number" || typeof cell.col !== "number") {
+    return "";
+  }
+  return `R${cell.row + 1}C${cell.col + 1}`;
+}
+
+function serializeStops(stops = []) {
+  return stops.map((stop, index) => `${index + 1}:${serializeCell(stop)}`).join("|");
+}
+
+function serializePath(path = []) {
+  return path.map((cell) => serializeCell(cell)).join(">");
+}
+
+function appendResearchEvent(eventType, payload = {}) {
+  const now = new Date();
+  const startedAtMs = Number(activeResearchRun?.startedAtMs || now.getTime());
+  const elapsedMs = Math.max(0, now.getTime() - startedAtMs);
+  const event = {
+    run_id: activeResearchRun?.runId || payload.run_id || "",
+    layout: activeResearchRun?.layout || LAYOUT_CODE,
+    route_goal: activeResearchRun?.routeGoal || getRouteMode(),
+    traffic_window: activeResearchRun?.trafficWindow || getTrafficWindow(),
+    zone_constraint: activeResearchRun?.zoneConstraint || getZoneConstraintMode(),
+    event_type: eventType,
+    event_timestamp_iso: now.toISOString(),
+    elapsed_ms_from_route_start: elapsedMs,
+    stop_index: payload.stop_index ?? "",
+    stop_row: payload.stop_row ?? "",
+    stop_col: payload.stop_col ?? "",
+    obstruction_category: payload.obstruction_category ?? "",
+    route_status: payload.route_status ?? "",
+    notes: payload.notes ?? "",
+    planned_start: payload.planned_start ?? "",
+    planned_stops: payload.planned_stops ?? "",
+    planned_final_drop: payload.planned_final_drop ?? "",
+    planned_route: payload.planned_route ?? "",
+  };
+
+  researchEvents.push(event);
+  saveResearchEvents();
+  updateResearchPanel();
+}
+
+function startResearchTimers() {
+  stopResearchTimers();
+  researchTimerHandle = window.setInterval(() => {
+    updateResearchPanel();
+  }, 500);
+}
+
+function stopResearchTimers() {
+  if (researchTimerHandle) {
+    window.clearInterval(researchTimerHandle);
+    researchTimerHandle = null;
+  }
+}
+
+function startResearchRoute() {
+  if (isResearchRunActive()) {
+    setStatusKey("research.routeAlreadyActive");
+    return;
+  }
+
+  if (!startCell || !goalCells.length || !lastRouteResult || !bestPath.length) {
+    setStatusKey("research.planFirst");
+    return;
+  }
+
+  const startedAtMs = Date.now();
+  activeResearchRun = {
+    runId: createRunId(),
+    status: "active",
+    layout: LAYOUT_CODE,
+    routeGoal: getRouteMode(),
+    trafficWindow: getTrafficWindow(),
+    zoneConstraint: getZoneConstraintMode(),
+    startedAtMs,
+    segmentStartedAtMs: startedAtMs,
+    currentStopIndex: null,
+    currentStopCell: null,
+    pickingStartedAtMs: null,
+  };
+
+  completedStopKeys = new Set();
+
+  appendResearchEvent("route_start", {
+    route_status: "active",
+    planned_start: serializeCell(startCell),
+    planned_stops: serializeStops(goalCells),
+    planned_final_drop: serializeCell(lastGoalCell),
+    planned_route: serializePath(bestPath),
+  });
+
+  startResearchTimers();
+  updateResearchPanel();
+  renderGrid();
+  setStatusKey("research.routeStarted", { runId: activeResearchRun.runId });
+}
+
+function markResearchStopArrival(cell, stopIndex) {
+  if (!isResearchRunActive()) {
+    return false;
+  }
+
+  const key = cellKey(cell);
+  if (completedStopKeys.has(key)) {
+    setStatusKey("research.stopAlreadyMarked", { stop: stopIndex });
+    return true;
+  }
+
+  completedStopKeys.add(key);
+  activeResearchRun.currentStopIndex = stopIndex;
+  activeResearchRun.currentStopCell = { ...cell };
+  activeResearchRun.segmentStartedAtMs = Date.now();
+
+  appendResearchEvent("stop_arrive", {
+    stop_index: stopIndex,
+    stop_row: cell.row + 1,
+    stop_col: cell.col + 1,
+  });
+
+  appendResearchEvent("stop_marked", {
+    stop_index: stopIndex,
+    stop_row: cell.row + 1,
+    stop_col: cell.col + 1,
+  });
+
+  updateResearchPanel();
+  renderGrid();
+  setStatusKey("research.stopMarked", { stop: stopIndex, row: cell.row + 1, col: cell.col + 1 });
+  return true;
+}
+
+function startPickingAtCurrentStop() {
+  if (!isResearchRunActive()) {
+    setStatusKey("research.noActiveRoute");
+    return;
+  }
+
+  if (!activeResearchRun.currentStopCell || typeof activeResearchRun.currentStopIndex !== "number") {
+    setStatusKey("research.markStopFirst");
+    return;
+  }
+
+  if (activeResearchRun.pickingStartedAtMs) {
+    setStatusKey("research.pickAlreadyStarted");
+    return;
+  }
+
+  activeResearchRun.pickingStartedAtMs = Date.now();
+  appendResearchEvent("pick_start", {
+    stop_index: activeResearchRun.currentStopIndex,
+    stop_row: activeResearchRun.currentStopCell.row + 1,
+    stop_col: activeResearchRun.currentStopCell.col + 1,
+  });
+  setStatusKey("research.pickStarted", { stop: activeResearchRun.currentStopIndex });
+}
+
+function endPickingAtCurrentStop() {
+  if (!isResearchRunActive()) {
+    setStatusKey("research.noActiveRoute");
+    return;
+  }
+
+  if (!activeResearchRun.pickingStartedAtMs || !activeResearchRun.currentStopCell) {
+    setStatusKey("research.pickNotStarted");
+    return;
+  }
+
+  const durationMs = Date.now() - activeResearchRun.pickingStartedAtMs;
+  appendResearchEvent("pick_end", {
+    stop_index: activeResearchRun.currentStopIndex,
+    stop_row: activeResearchRun.currentStopCell.row + 1,
+    stop_col: activeResearchRun.currentStopCell.col + 1,
+    notes: `pick_ms=${durationMs}`,
+  });
+  activeResearchRun.pickingStartedAtMs = null;
+  setStatusKey("research.pickEnded", { stop: activeResearchRun.currentStopIndex });
+}
+
+function logObstructionEvent(obstruction = "other") {
+  if (!isResearchRunActive()) {
+    setStatusKey("research.noActiveRoute");
+    return;
+  }
+
+  const normalizedObstruction = String(obstruction || "other");
+  appendResearchEvent("obstruction", {
+    stop_index: activeResearchRun.currentStopIndex ?? "",
+    stop_row: activeResearchRun.currentStopCell ? activeResearchRun.currentStopCell.row + 1 : "",
+    stop_col: activeResearchRun.currentStopCell ? activeResearchRun.currentStopCell.col + 1 : "",
+    obstruction_category: normalizedObstruction,
+  });
+  setStatusKey("research.obstructionLogged", { category: t(`research.obstruction.${normalizeObstructionKey(normalizedObstruction)}`) });
+}
+
+function endResearchRoute(status = "completed", reason = "") {
+  if (!isResearchRunActive()) {
+    setStatusKey("research.noActiveRoute");
+    return;
+  }
+
+  appendResearchEvent("route_end", {
+    route_status: status,
+    notes: reason || status,
+  });
+
+  const completedRouteCount = getCompletedResearchRouteCount();
+  const shouldAutoExport =
+    status === "completed" &&
+    completedRouteCount > 0 &&
+    completedRouteCount % RESEARCH_AUTO_EXPORT_EVERY_COMPLETED_ROUTES === 0;
+
+  activeResearchRun = null;
+  completedStopKeys = new Set();
+  stopResearchTimers();
+  updateResearchPanel();
+  renderGrid();
+
+  if (status === "aborted") {
+    setStatusKey("research.routeAborted");
+    return;
+  }
+
+  setStatusKey("research.routeEnded", { count: completedRouteCount });
+
+  if (shouldAutoExport) {
+    exportResearchDataCsv("auto");
+  }
+}
+
+function getCompletedResearchRouteCount() {
+  return researchEvents.filter((event) => event.event_type === "route_end" && event.route_status === "completed").length;
+}
+
+function csvEscape(value) {
+  const text = String(value ?? "");
+  if (/[",\n]/.test(text)) {
+    return `"${text.replace(/"/g, '""')}"`;
+  }
+  return text;
+}
+
+function exportResearchDataCsv(trigger = "manual") {
+  if (!researchEvents.length) {
+    setStatusKey("research.noDataToExport");
+    return;
+  }
+
+  const headers = [
+    "run_id",
+    "layout",
+    "route_goal",
+    "traffic_window",
+    "zone_constraint",
+    "event_type",
+    "event_timestamp_iso",
+    "elapsed_ms_from_route_start",
+    "stop_index",
+    "stop_row",
+    "stop_col",
+    "obstruction_category",
+    "route_status",
+    "notes",
+    "planned_start",
+    "planned_stops",
+    "planned_final_drop",
+    "planned_route",
+  ];
+
+  const lines = [headers.join(",")];
+  for (const event of researchEvents) {
+    lines.push(headers.map((header) => csvEscape(event[header])).join(","));
+  }
+
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, "0");
+  const fileName = `research_export_${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(
+    now.getHours(),
+  )}-${pad(now.getMinutes())}.csv`;
+
+  const anchor = document.createElement("a");
+  anchor.href = URL.createObjectURL(blob);
+  anchor.download = fileName;
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  URL.revokeObjectURL(anchor.href);
+
+  setStatusKey(trigger === "auto" ? "research.autoExported" : "research.exported", {
+    count: researchEvents.length,
+    file: fileName,
+  });
+}
+
+function normalizeObstructionKey(value) {
+  if (value === "blocked-aisle") {
+    return "blockedAisle";
+  }
+  if (value === "person-traffic") {
+    return "personTraffic";
+  }
+  return value;
+}
+
+function updateResearchPanel() {
+  const isActive = isResearchRunActive();
+  const now = Date.now();
+  const overallElapsed = isActive ? now - activeResearchRun.startedAtMs : 0;
+  const segmentElapsed = isActive ? now - activeResearchRun.segmentStartedAtMs : 0;
+
+  if (researchRunLabel) {
+    researchRunLabel.textContent = isActive
+      ? t("research.activeRun", { runId: activeResearchRun.runId })
+      : t("research.noRun");
+  }
+
+  if (researchOverallTimer) {
+    researchOverallTimer.textContent = formatDuration(overallElapsed);
+  }
+
+  if (researchSegmentTimer) {
+    researchSegmentTimer.textContent = formatDuration(segmentElapsed);
+  }
+
+  if (researchSavedCount) {
+    researchSavedCount.textContent = t("research.savedCount", { count: researchEvents.length });
+  }
+
+  if (researchStartRouteBtn) {
+    researchStartRouteBtn.disabled = isActive;
+  }
+  if (researchStartPickBtn) {
+    researchStartPickBtn.disabled = !isActive;
+  }
+  if (researchEndPickBtn) {
+    researchEndPickBtn.disabled = !isActive;
+  }
+  if (researchEndRouteBtn) {
+    researchEndRouteBtn.disabled = !isActive;
+  }
+  researchObstructionButtons.forEach((button) => {
+    button.disabled = !isActive;
+  });
+}
+
 function setPendingLastPlacement(enabled) {
   pendingLastPlacement = Boolean(enabled);
   if (markLastToggle) {
@@ -433,6 +878,11 @@ function handleCellClick(row, col, options = {}) {
 
   const existingGoalIndex = goalCells.findIndex((goal) => sameCell(goal, clicked));
 
+  if (!effectiveMarkAsLast && isResearchRunActive() && existingGoalIndex >= 0) {
+    markResearchStopArrival(clicked, existingGoalIndex + 1);
+    return;
+  }
+
   if (effectiveMarkAsLast) {
     if (existingGoalIndex < 0) {
       if (goalCells.length >= MAX_PICK_LOCATIONS) {
@@ -489,6 +939,14 @@ function handleCellDoubleClick(row, col) {
 }
 
 function runPlanner() {
+  if (isResearchRunActive()) {
+    const closeRun = window.confirm(t("research.confirmCloseAndRestart"));
+    if (!closeRun) {
+      return;
+    }
+    endResearchRoute("aborted", "replanned");
+  }
+
   if (!startCell) {
     setStatusKey("status.pickStart");
     return;
@@ -855,6 +1313,7 @@ function isWalkable(row, col) {
 
 function renderGrid() {
   const routeSet = new Set(bestPath.map(cellKey));
+  const completedSet = completedStopKeys;
   const displayedGoals = bestVisitOrder.length === goalCells.length ? bestVisitOrder : goalCells;
   const numberedGoals = displayedGoals.filter((goal) => !sameCell(goal, lastGoalCell));
 
@@ -901,6 +1360,10 @@ function renderGrid() {
             cell.classList.add("goal");
             cell.textContent = String(goalIndex + 1);
 
+            if (completedSet.has(cellKey(currentCell))) {
+              cell.classList.add("goal-complete");
+            }
+
             if (unreachableGoalKeys.has(cellKey(currentCell))) {
               cell.classList.add("goal-unreachable");
             }
@@ -936,6 +1399,10 @@ function renderGrid() {
 }
 
 function resetSelections() {
+  if (isResearchRunActive()) {
+    endResearchRoute("aborted", "reset-selections");
+  }
+
   startCell = null;
   goalCells = [];
   lastGoalCell = null;
@@ -1248,12 +1715,10 @@ function getHeatClassForCell(row, col, trafficWindow = getTrafficWindow()) {
 }
 
 function updateRouteSummary() {
-  if (!routeSummary) {
-    return;
-  }
-
   if (!lastRouteResult) {
-    routeSummary.textContent = t("planner.summaryEmpty");
+    if (routeSummary) {
+      routeSummary.textContent = t("planner.summaryEmpty");
+    }
     if (metricTime) {
       metricTime.textContent = t("planner.metricEmpty");
     }
@@ -1269,11 +1734,13 @@ function updateRouteSummary() {
     return;
   }
 
-  routeSummary.textContent = t("planner.summaryReady", {
-    mode: getModeLabel(lastRouteResult.routeMode),
-    zone: getZoneLabel(lastRouteResult.zoneConstraint),
-    traffic: getTrafficLabel(lastRouteResult.trafficWindow),
-  });
+  if (routeSummary) {
+    routeSummary.textContent = t("planner.summaryReady", {
+      mode: getModeLabel(lastRouteResult.routeMode),
+      zone: getZoneLabel(lastRouteResult.zoneConstraint),
+      traffic: getTrafficLabel(lastRouteResult.trafficWindow),
+    });
+  }
 
   if (metricTime) {
     metricTime.textContent = formatTimeRange(lastRouteResult.timeMinSeconds, lastRouteResult.timeMaxSeconds);
@@ -1341,6 +1808,7 @@ function sameCell(a, b) {
 
 function handleLanguageChange() {
   renderGrid();
+  updateResearchPanel();
   updateRouteSummary();
   setStatus(t(lastStatusKey, lastStatusParams));
 }
