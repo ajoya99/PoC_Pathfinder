@@ -19,6 +19,7 @@ Users can:
 - Toggle traffic heatmap overlay.
 - View effort, turns, and estimated time range.
 - Switch language (EN/NL) and theme (blue/berry).
+- Enable Research Mode to time real picker runs and log obstructions.
 
 ## Run Locally (No Node Required)
 
@@ -49,8 +50,19 @@ http://localhost:8080
    - Zone constraint
    - Traffic window
    - Heatmap toggle
+   - Research Mode toggle (hidden by default — tap to enable)
 6. Tap GO.
 7. Use RESET or UNDO LAST PICK as needed.
+
+Research Mode (optional):
+
+1. Enable the RESEARCH MODE toggle.
+2. Plan and run a route first (GO).
+3. Tap START ROUTE to begin a timed research run.
+4. Tap START PICKING STOP / END PICKING STOP at each location.
+5. Log any obstructions encountered.
+6. Tap END ROUTE when complete.
+7. Export all recorded events to CSV with EXPORT CSV.
 
 Rules:
 
@@ -65,6 +77,15 @@ Rules:
 - Final ranking uses effort, turns, and route-goal mode.
 - Zone penalties and congestion penalties are included in route scoring.
 - If no full route exists, blocked selections are reported.
+
+## Research Mode
+
+- Activated by a toggle button on each planner page (hidden by default).
+- Enables timed real-world pick runs to be recorded against a planned route.
+- Tracks overall run time and per-stop segment time.
+- Lets pickers log obstruction events (blocked aisle, pallet, person traffic, equipment, other).
+- All events are stored in `localStorage` and can be exported as CSV.
+- Auto-exports every 10 completed routes.
 
 ## Traffic, Effort, and Metrics
 
@@ -132,3 +153,7 @@ https://<github-username>.github.io/PoC_Pathfinder/
   - Allow local server through firewall if needed.
 - No route found:
   - Remove blocked picks and try again.
+- Metrics show raw key names (e.g. `planner.metricMeters`) instead of text:
+  - This was caused by script.js loading before theme.js completed. Fixed in v1.3 by adding `defer` to script.js.
+- Research Mode toggle or metric labels show wrong text after deploy:
+  - Hard-refresh the page on your device to clear cached files.
