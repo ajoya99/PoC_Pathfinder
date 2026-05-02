@@ -249,17 +249,6 @@ input {
   letter-spacing: 0.08em;
 }
 
-.status-chip {
-  display: inline-flex;
-  align-self: center;
-  margin-top: 10px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: var(--soft-accent-bg);
-  color: var(--soft-accent-text);
-  font-size: 0.78rem;
-}
-
 .controls-panel {
   padding: 12px;
 }
@@ -297,6 +286,16 @@ input {
   accent-color: var(--accent);
 }
 
+.research-mode-toggle.wide {
+  width: 100%;
+}
+
+.research-mode-toggle.is-active {
+  border-color: rgba(88, 180, 255, 0.7);
+  background: rgba(88, 180, 255, 0.18);
+  color: #dff1ff;
+}
+
 .option-field span {
   color: var(--muted);
   font-size: 0.72rem;
@@ -318,10 +317,6 @@ input {
   border-color: rgba(255, 213, 74, 0.6);
   background: rgba(255, 213, 74, 0.16);
   color: #ffe9a2;
-}
-
-.hint-text {
-  color: var(--muted);
 }
 
 .legend {
@@ -354,22 +349,16 @@ input {
 .legend-box.path { background: var(--path); }
 
 .hint-text {
+  color: var(--muted);
   margin: 12px 0 0;
   font-size: 0.85rem;
   line-height: 1.4;
 }
 
-.route-summary {
-  margin: 10px 0 0;
-  color: var(--soft-accent-text);
-  font-size: 0.78rem;
-  line-height: 1.35;
-}
-
 .route-metrics {
   margin-top: 10px;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -411,8 +400,89 @@ input {
   padding: 10px;
 }
 
+.research-panel {
+  border: 1px solid var(--soft-accent-border);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(7, 22, 43, 0.42);
+  text-align: left;
+  margin-bottom: 10px;
+}
+
+.research-panel[hidden] {
+  display: none !important;
+}
+
+.research-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.research-title {
+  margin: 0;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--soft-accent-text);
+}
+
+.research-run-label {
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.research-timers {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.research-pill {
+  padding: 7px 6px;
+}
+
+.research-actions {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.research-obstruction {
+  margin-top: 8px;
+  display: grid;
+  gap: 8px;
+}
+
+.research-obstruction-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.research-export {
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
 .grid-panel .hint-text {
+  margin: 0 0 12px;
+}
+
+.pointer-coords {
   margin: 0 0 8px;
+  color: var(--soft-accent-text);
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
 }
 
 .grid-board {
@@ -504,9 +574,35 @@ input {
   color: #4a3400;
 }
 
+.grid-cell.start.heat-1 {
+  background:
+    radial-gradient(circle at center, var(--start) 0 60%, transparent 64%),
+    linear-gradient(rgba(255, 226, 125, 0.24), rgba(255, 226, 125, 0.24));
+  box-shadow: 0 0 0 0.35px var(--start);
+}
+
+.grid-cell.start.heat-2 {
+  background:
+    radial-gradient(circle at center, var(--start) 0 60%, transparent 64%),
+    linear-gradient(rgba(255, 190, 94, 0.32), rgba(255, 190, 94, 0.32));
+  box-shadow: 0 0 0 0.35px var(--start);
+}
+
+.grid-cell.start.heat-3 {
+  background:
+    radial-gradient(circle at center, var(--start) 0 60%, transparent 64%),
+    linear-gradient(rgba(255, 146, 87, 0.4), rgba(255, 146, 87, 0.4));
+  box-shadow: 0 0 0 0.35px var(--start);
+}
+
 .grid-cell.goal {
   --cell-fill: var(--goal);
   color: #4a3400;
+}
+
+.grid-cell.goal.goal-complete {
+  --cell-fill: #8de2a8;
+  color: #113722;
 }
 
 .grid-cell.goal.heat-1 {
@@ -677,12 +773,6 @@ input {
   font-size: 0.68rem;
 }
 
-.empty-state {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.84rem;
-}
-
 @media (max-width: 480px) {
   .app-shell {
     padding: 8px;
@@ -703,5 +793,17 @@ input {
 
   .route-metrics {
     grid-template-columns: 1fr;
+  }
+
+  .research-timers,
+  .research-actions,
+  .research-obstruction,
+  .research-obstruction-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .research-export {
+    flex-direction: column;
+    align-items: stretch;
   }
 }

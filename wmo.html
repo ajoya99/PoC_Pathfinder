@@ -21,7 +21,6 @@
         </a>
         <p class="mini-label" data-i18n="planner.miniLabel">Multi-picker route planner</p>
         <h1 data-i18n="document.wmo.title">WMO PATHFINDER</h1>
-        <span id="statusChip" class="status-chip" data-i18n="status.loading">Loading stored layout...</span>
       </header>
 
       <section class="controls-panel">
@@ -59,6 +58,16 @@
             <input id="heatmapToggle" type="checkbox" checked />
             <span data-i18n="planner.showHeatmap">Show mild traffic heatmap</span>
           </label>
+
+          <button
+            id="researchModeToggle"
+            class="action-button ghost compact research-mode-toggle wide"
+            type="button"
+            aria-pressed="false"
+            data-i18n="research.toggle"
+          >
+            RESEARCH MODE
+          </button>
         </div>
 
         <div class="legend">
@@ -69,22 +78,22 @@
           <span><i class="legend-box path"></i><span data-i18n="legend.path">Best route</span></span>
         </div>
 
-        <p id="routeSummary" class="route-summary" data-i18n="planner.summaryEmpty">
-          Choose a start and pick locations to build a route.
-        </p>
-
         <div class="route-metrics" aria-live="polite">
           <article class="metric-pill">
-            <span class="metric-label" data-i18n="planner.metricEffort">Effort</span>
-            <strong id="metricEffort" class="metric-value">-</strong>
+            <span class="metric-label" data-i18n="planner.metricTime">Time range</span>
+            <strong id="metricTime" class="metric-value">-</strong>
+          </article>
+          <article class="metric-pill">
+            <span class="metric-label" data-i18n="planner.metricMeters">Meters</span>
+            <strong id="metricMeters" class="metric-value">-</strong>
           </article>
           <article class="metric-pill">
             <span class="metric-label" data-i18n="planner.metricTurns">Turns</span>
             <strong id="metricTurns" class="metric-value">-</strong>
           </article>
           <article class="metric-pill">
-            <span class="metric-label" data-i18n="planner.metricTime">Time range</span>
-            <strong id="metricTime" class="metric-value">-</strong>
+            <span class="metric-label" data-i18n="planner.metricEffort">Effort</span>
+            <strong id="metricEffort" class="metric-value">-</strong>
           </article>
         </div>
 
@@ -92,10 +101,52 @@
       </section>
 
       <section class="grid-panel">
+        <section id="researchPanel" class="research-panel" aria-label="Research mode panel" hidden>
+          <div class="research-head">
+            <p class="research-title" data-i18n="research.title">Research mode</p>
+            <p id="researchRunLabel" class="research-run-label" data-i18n="research.noRun">No active run</p>
+          </div>
+
+          <div class="research-timers">
+            <article class="metric-pill research-pill">
+              <span class="metric-label" data-i18n="research.overallTimer">Overall timer</span>
+              <strong id="researchOverallTimer" class="metric-value">00:00</strong>
+            </article>
+            <article class="metric-pill research-pill">
+              <span class="metric-label" data-i18n="research.segmentTimer">Location timer</span>
+              <strong id="researchSegmentTimer" class="metric-value">00:00</strong>
+            </article>
+          </div>
+
+          <div class="research-actions">
+            <button id="researchStartRouteBtn" class="action-button primary compact" type="button" data-i18n="research.startRoute">START ROUTE</button>
+            <button id="researchStartPickBtn" class="action-button ghost compact" type="button" data-i18n="research.startPick">START PICKING STOP</button>
+            <button id="researchEndPickBtn" class="action-button ghost compact" type="button" data-i18n="research.endPick">END PICKING STOP</button>
+            <button id="researchEndRouteBtn" class="action-button secondary compact" type="button" data-i18n="research.endRoute">END ROUTE</button>
+          </div>
+
+          <div class="research-obstruction">
+            <p class="research-title" data-i18n="research.obstruction">Obstruction</p>
+            <div class="research-obstruction-buttons">
+              <button class="action-button ghost compact" type="button" data-research-obstruction="blocked-aisle" data-i18n="research.obstruction.blockedAisle">Blocked aisle</button>
+              <button class="action-button ghost compact" type="button" data-research-obstruction="pallet" data-i18n="research.obstruction.pallet">Pallet</button>
+              <button class="action-button ghost compact" type="button" data-research-obstruction="person-traffic" data-i18n="research.obstruction.personTraffic">Person traffic</button>
+              <button class="action-button ghost compact" type="button" data-research-obstruction="equipment" data-i18n="research.obstruction.equipment">Equipment</button>
+              <button class="action-button ghost compact" type="button" data-research-obstruction="other" data-i18n="research.obstruction.other">Other</button>
+            </div>
+          </div>
+
+          <div class="research-export">
+            <button id="researchExportBtn" class="action-button secondary compact" type="button" data-i18n="research.exportCsv">EXPORT CSV</button>
+            <p id="researchSavedCount" class="estimate-note">0 events saved</p>
+          </div>
+        </section>
+
         <p class="hint-text" data-i18n="planner.hint">
           Click one free cell to place the START, then click stops normally.
           Double-click any stop to mark it as the final location (L).
         </p>
+        <p id="pointerCoords" class="pointer-coords" aria-live="polite">Pointer: -</p>
         <div id="grid" class="grid-board" aria-label="43 by 43 interactive pathfinding grid"></div>
       </section>
 

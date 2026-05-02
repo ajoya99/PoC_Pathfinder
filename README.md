@@ -1,92 +1,134 @@
-# DC PATHFINDER PoC
+# DC Pathfinder PoC
 
-This repository now contains only the Proof of Concept route planner flow:
+Interactive route-planning proof of concept for two warehouse layouts:
 
-- Home: index.html
-- ZV planner: zv.html
-- WMO planner: wmo.html
+- ZV
+- WMO
 
-## Features
+The app is a static web application and is deployed with GitHub Pages.
 
-- Interactive route planning on both layouts
-- One start cell plus multiple stop cells
-- Optional final stop marker (double-click to set L)
-- Best route selection by:
-  - Fewest steps
-  - Then fewest turns
-- Algorithm comparison:
-  - BFS
-  - Dijkstra
-  - Greedy Best-First
-  - A*
-- Theme and language toggle support
+## Overview
 
-## Run locally
+Users can:
 
-From the project folder:
+- Select a START cell on the grid.
+- Add up to 12 pick locations.
+- Optionally mark a final drop cell (L).
+- Compare route outcomes across BFS, Dijkstra, Greedy Best-First, and A*.
+- Tune route behavior with route goal, zone constraint, and traffic window.
+- Toggle traffic heatmap overlay.
+- View effort, turns, and estimated time range.
+- Switch language (EN/NL) and theme (blue/berry).
+
+## Run Locally (No Node Required)
+
+This project needs an HTTP server because CSV files are fetched at runtime. Do not open files directly with file://.
+
+Use any static server. Example with Python:
 
 ```powershell
-npm install
-npm start
+python -m http.server 8080
 ```
 
-Server runs on port 8080 by default.
-
-Open on your computer:
+Then open:
 
 ```text
 http://localhost:8080
 ```
 
-## Access from your phone (same Wi-Fi)
+## How To Use
 
-1. Find your computer local IPv4 address.
-2. Keep the server running.
-3. On your phone browser open:
+1. Open the landing page and choose ZV or WMO.
+2. Tap one free cell (value 0) to set START.
+3. Tap free cells to add pick locations.
+4. Optional final drop (L):
+   - Tap MARK FINAL DROP and then tap a pick location, or
+   - Double-tap a pick location.
+5. Choose route settings:
+   - Route goal (Balanced / Fastest / Least turns)
+   - Zone constraint
+   - Traffic window
+   - Heatmap toggle
+6. Tap GO.
+7. Use RESET or UNDO LAST PICK as needed.
+
+Rules:
+
+- Only cells with value 0 are walkable.
+- Maximum pick locations is 12.
+- START cannot be used as final drop L.
+
+## Route Engine Summary
+
+- Route candidates are computed for all four algorithms.
+- For multi-stop planning, stop order is optimized with memoization and path segment caching.
+- Final ranking uses effort, turns, and route-goal mode.
+- Zone penalties and congestion penalties are included in route scoring.
+- If no full route exists, blocked selections are reported.
+
+## Traffic, Effort, and Metrics
+
+- Layout-specific congestion profiles exist for ZV and WMO.
+- Time windows:
+  - Morning
+  - Midday
+  - Afternoon
+- Congestion zones are modeled with circles and ratio-based rectangles.
+- Effort includes movement cost, turn cost, zone penalties, and congestion penalties.
+
+Displayed output:
+
+- Effort (EU)
+- Turns
+- Time range (sec/min)
+
+## Localization and Theme
+
+- Translations: English and Dutch.
+- Themes: blue and berry.
+- Theme and language are persisted in localStorage.
+
+## Project Structure
 
 ```text
-http://YOUR_PC_IP:8080
+PoC_Pathfinder/
+  index.html                    # Landing page
+  zv.html                       # ZV planner
+  wmo.html                      # WMO planner
+  script.js                     # Planner logic and algorithms
+  theme.js                      # i18n and theme/language toggles
+  styles.css                    # Shared UI styling
+  data/
+    ZV_layout.csv               # ZV grid layout
+    WMO_layout.csv              # WMO grid layout
+    logo_medux.png              # Logo asset
+  .github/workflows/
+    deploy-pages.yml            # GitHub Pages deployment workflow
 ```
 
-Example:
+## Deployment
+
+Deployment target: GitHub Pages only.
+
+Workflow:
+
+- .github/workflows/deploy-pages.yml
+
+On push to main, the workflow publishes the site to gh-pages.
+
+URL pattern:
 
 ```text
-http://192.168.1.35:8080
+https://<github-username>.github.io/PoC_Pathfinder/
 ```
 
-If it does not load, allow Node.js through Windows Firewall for private networks.
+## Troubleshooting
 
-## Publish to a URL with GitHub Pages
-
-This project is configured to deploy as a static site with GitHub Pages.
-
-How it works:
-
-1. Push to `main`
-2. GitHub Actions publishes files to the `gh-pages` branch
-3. GitHub gives you a URL like:
-
-```text
-https://YOUR_GITHUB_USERNAME.github.io/PoC_Pathfinder/
-```
-
-For this repository, the expected URL format is:
-
-```text
-https://ajoya99.github.io/PoC_Pathfinder/
-```
-
-To enable it the first time:
-
-1. Open your GitHub repository
-2. Go to Settings > Pages
-3. Under Source, choose Deploy from a branch
-4. Branch: `gh-pages` and folder: `/ (root)`
-
-After the workflow finishes, open the GitHub Pages URL on your phone browser.
-
-Notes:
-
-- No Azure deployment token is needed
-- The local Express server is only for local testing
-- GitHub Pages is the easiest way to get a stable shareable URL for this PoC
+- Layout not loading:
+  - Ensure the site is served over HTTP.
+  - Ensure CSV files are present in data/.
+- Cannot open on phone:
+  - Use your computer IPv4 on same Wi-Fi.
+  - Allow local server through firewall if needed.
+- No route found:
+  - Remove blocked picks and try again.
