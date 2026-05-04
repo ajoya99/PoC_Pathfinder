@@ -93,14 +93,6 @@
       </section>
 
       <section class="grid-panel">
-        <div class="legend">
-          <span><i class="legend-box free"></i><span data-i18n="legend.free">Free</span></span>
-          <span><i class="legend-box start"></i><span data-i18n="legend.start">Start (S)</span></span>
-          <span><i class="legend-box goal"></i><span data-i18n="legend.stops">Stops</span></span>
-          <span><i class="legend-box last"></i><span data-i18n="legend.last">Last (L)</span></span>
-          <span><i class="legend-box path"></i><span data-i18n="legend.path">Best route</span></span>
-        </div>
-
         <section id="researchPanel" class="research-panel" aria-label="Research mode panel" hidden>
           <div class="research-head">
             <p class="research-title" data-i18n="research.title">Research mode</p>
@@ -146,6 +138,13 @@
           Click one free cell to place the START, then click stops normally.
           Double-click any stop to mark it as the final location (L).
         </p>
+        <div class="legend">
+          <span><i class="legend-box free"></i><span data-i18n="legend.free">Free</span></span>
+          <span><i class="legend-box start"></i><span data-i18n="legend.start">Start (S)</span></span>
+          <span><i class="legend-box goal"></i><span data-i18n="legend.stops">Stops</span></span>
+          <span><i class="legend-box last"></i><span data-i18n="legend.last">Last (L)</span></span>
+          <span><i class="legend-box path"></i><span data-i18n="legend.path">Best route</span></span>
+        </div>
         <p id="pointerCoords" class="pointer-coords" aria-live="polite">Pointer: -</p>
         <div id="grid" class="grid-board" aria-label="33 by 33 interactive pathfinding grid"></div>
       </section>
