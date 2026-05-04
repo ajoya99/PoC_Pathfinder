@@ -791,10 +791,6 @@ input {
     grid-template-columns: 1fr;
   }
 
-  .route-metrics {
-    grid-template-columns: 1fr;
-  }
-
   .research-timers,
   .research-actions,
   .research-obstruction,
