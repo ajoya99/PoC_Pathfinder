@@ -638,6 +638,10 @@ The current architecture makes integration straightforward: `script.js` exposes 
 | May 2026 | v1.2.1 | Research Mode toggle hidden by default (no JS flash); initial state set in HTML |
 | May 2026 | v1.3 | Fix: metrics not showing after GO — removed early return in `updateRouteSummary` gated on missing `routeSummary` element |
 | May 2026 | v1.3.1 | Fix: all translation keys rendered as raw strings on GitHub Pages — added `defer` to `script.js` to enforce load order after `theme.js` |
+| May 2026 | v1.3.2 | Layout: reduced metric pill font sizes (labels 0.62→0.55rem, values 0.8→0.7rem) for better mobile fit |
+| May 2026 | v1.3.3 | Fix: metrics stacking vertically on narrow screens — removed mobile media query collapse to preserve 4-column grid |
+| May 2026 | v1.3.4 | Hide: pointer coordinate display hidden with `display: none` to declutter mobile UI (logic preserved for future re-enable) |
+| May 2026 | v1.3.5 | Layout: moved color legend to between hint text and grid with proper spacing for improved prominence
 
 ---
 
