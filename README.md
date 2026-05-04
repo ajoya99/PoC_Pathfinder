@@ -17,7 +17,8 @@ Users can:
 - Compare route outcomes across BFS, Dijkstra, Greedy Best-First, and A*.
 - Tune route behavior with route goal, zone constraint, and traffic window.
 - Toggle traffic heatmap overlay.
-- View effort, turns, and estimated time range.
+- View effort, turns, and estimated time range (displayed in 4-column metric grid).
+- See color-coded legend for cell types (Free, Start, Stops, Last, Best route).
 - Switch language (EN/NL) and theme (blue/berry).
 - Enable Research Mode to time real picker runs and log obstructions.
 
