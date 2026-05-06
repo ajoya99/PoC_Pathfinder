@@ -10,6 +10,7 @@ const TRANSLATIONS = {
     "document.home.title": "Multi-picker Route Planner",
     "document.zv.title": "ZV PATHFINDER",
     "document.wmo.title": "WMO PATHFINDER",
+    "document.ams.title": "AMS PATHFINDER",
     "common.logoAlt": "Medux logo",
     "common.backToHome": "Back to home",
     "common.themeToBerry": "Switch to berry palette",
@@ -18,9 +19,13 @@ const TRANSLATIONS = {
     "common.switchToEnglish": "Switch to English",
     "home.miniLabel": "Distribution routing hub",
     "home.title": "Multi-picker Route Planner",
-    "home.subtitle": "Medux's Distribution Center in Zwijndrecht",
+    "home.subtitleTemplate": "{location}",
+    "home.locationLabel": "Location",
+    "home.location.zwijndrecht": "Zwijndrecht",
+    "home.location.amsterdam": "Amsterdam",
     "home.zvButton": "ZV Pathfinder",
     "home.wmoButton": "WMO Pathfinder",
+    "home.amsButton": "AMS Pathfinder",
     "planner.miniLabel": "Multi-picker route planner",
     "legend.free": "Free",
     "legend.start": "Start (S)",
@@ -28,6 +33,16 @@ const TRANSLATIONS = {
     "legend.last": "Final drop (L)",
     "legend.path": "Best route",
     "planner.routeGoal": "Route goal",
+    "planner.modeLabel": "Planner mode",
+    "planner.modeScan": "Scan",
+    "planner.modeSelect": "Select",
+    "planner.modeResearch": "Research",
+    "planner.modeScanPending": "Scan tab is ready. Content coming next.",
+    "planner.modeResearchPending": "Research tab is ready. Content coming next.",
+    "planner.orderNumber": "Order Number",
+    "planner.orderNumberPlaceholder": "Enter order number",
+    "planner.scanShowBestRoute": "SHOW BEST ROUTE",
+    "planner.scanResetWindow": "RESET WINDOW",
     "planner.zoneConstraint": "Zone constraint",
     "planner.trafficWindow": "Traffic window",
     "planner.showHeatmap": "Show mild traffic heatmap",
@@ -93,6 +108,9 @@ const TRANSLATIONS = {
     "status.heatmapOn": "Traffic heatmap enabled.",
     "status.heatmapOff": "Traffic heatmap hidden.",
     "status.nothingToUndo": "No pick locations to undo.",
+    "status.orderNumberRequired": "Enter a valid Order Number first.",
+    "status.scanRouteBuilt": "Best route generated for order {order} with {count} locations.",
+    "status.scanReset": "Scan window reset.",
     "grid.aria": "{size} by {size} interactive pathfinding grid",
     "grid.cellAria": "Row {row}, Column {col}, Value {value}",
     "research.title": "Research mode",
@@ -138,6 +156,7 @@ const TRANSLATIONS = {
     "document.home.title": "Multi-picker Routeplanner",
     "document.zv.title": "ZV PATHFINDER",
     "document.wmo.title": "WMO PATHFINDER",
+    "document.ams.title": "AMS PATHFINDER",
     "common.logoAlt": "Medux-logo",
     "common.backToHome": "Terug naar start",
     "common.themeToBerry": "Wissel naar bessentint",
@@ -146,9 +165,13 @@ const TRANSLATIONS = {
     "common.switchToEnglish": "Overschakelen naar Engels",
     "home.miniLabel": "Routehub distributiecentrum",
     "home.title": "Multi-picker Routeplanner",
-    "home.subtitle": "Distributiecentrum van Medux in Zwijndrecht",
+    "home.subtitleTemplate": "{location}",
+    "home.locationLabel": "Locatie",
+    "home.location.zwijndrecht": "Zwijndrecht",
+    "home.location.amsterdam": "Amsterdam",
     "home.zvButton": "ZV Pathfinder",
     "home.wmoButton": "WMO Pathfinder",
+    "home.amsButton": "AMS Pathfinder",
     "planner.miniLabel": "Routeplanner voor meerdere orderpickers",
     "legend.free": "Vrij",
     "legend.start": "Start (S)",
@@ -156,6 +179,16 @@ const TRANSLATIONS = {
     "legend.last": "Einddrop (L)",
     "legend.path": "Beste route",
     "planner.routeGoal": "Routedoel",
+    "planner.modeLabel": "Plannermodus",
+    "planner.modeScan": "Scan",
+    "planner.modeSelect": "Selecteer",
+    "planner.modeResearch": "Onderzoek",
+    "planner.modeScanPending": "Scan-tab staat klaar. Inhoud volgt hierna.",
+    "planner.modeResearchPending": "Onderzoek-tab staat klaar. Inhoud volgt hierna.",
+    "planner.orderNumber": "Ordernummer",
+    "planner.orderNumberPlaceholder": "Voer ordernummer in",
+    "planner.scanShowBestRoute": "TOON BESTE ROUTE",
+    "planner.scanResetWindow": "VENSTER RESETTEN",
     "planner.zoneConstraint": "Zonebeperking",
     "planner.trafficWindow": "Druktevenster",
     "planner.showHeatmap": "Toon milde drukte-heatmap",
@@ -221,6 +254,9 @@ const TRANSLATIONS = {
     "status.heatmapOn": "Drukte-heatmap ingeschakeld.",
     "status.heatmapOff": "Drukte-heatmap verborgen.",
     "status.nothingToUndo": "Geen picklocaties om ongedaan te maken.",
+    "status.orderNumberRequired": "Voer eerst een geldig ordernummer in.",
+    "status.scanRouteBuilt": "Beste route gegenereerd voor order {order} met {count} locaties.",
+    "status.scanReset": "Scanvenster gereset.",
     "grid.aria": "{size} bij {size} interactief pathfinding-raster",
     "grid.cellAria": "Rij {row}, kolom {col}, waarde {value}",
     "research.title": "Onderzoeksmodus",
@@ -377,6 +413,94 @@ function applyLanguage(languageName) {
   window.dispatchEvent(new CustomEvent("medux:languagechange", { detail: { language: normalizedLanguage } }));
 }
 
+function getSelectedHomeLocation() {
+  const locationSelect = document.getElementById("homeLocationSelect");
+  if (locationSelect) {
+    return locationSelect.value;
+  }
+
+  const activeOption = document.querySelector("[data-home-location-option].is-active");
+  if (activeOption?.dataset.homeLocationOption) {
+    return activeOption.dataset.homeLocationOption;
+  }
+
+  return "zwijndrecht";
+}
+
+function setSelectedHomeLocation(locationValue) {
+  const toggleContainer = document.getElementById("homeLocationToggle");
+  const options = Array.from(document.querySelectorAll("[data-home-location-option]"));
+
+  options.forEach((option) => {
+    const isActive = option.dataset.homeLocationOption === locationValue;
+    option.classList.toggle("is-active", isActive);
+    option.setAttribute("aria-pressed", isActive ? "true" : "false");
+  });
+
+  if (toggleContainer) {
+    toggleContainer.dataset.location = locationValue;
+  }
+}
+
+function updateHomeActionsByLocation() {
+  const selectedLocation = getSelectedHomeLocation();
+  document.querySelectorAll("[data-home-locations]").forEach((linkElement) => {
+    const allowedLocations = String(linkElement.dataset.homeLocations || "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const isAllowed = allowedLocations.includes(selectedLocation);
+
+    if (!linkElement.dataset.originalHref) {
+      linkElement.dataset.originalHref = linkElement.getAttribute("href") || "";
+    }
+
+    linkElement.hidden = false;
+    linkElement.setAttribute("aria-disabled", isAllowed ? "false" : "true");
+    linkElement.tabIndex = isAllowed ? 0 : -1;
+    linkElement.classList.toggle("is-allowed", isAllowed);
+    linkElement.classList.toggle("is-blocked", !isAllowed);
+
+    if (isAllowed) {
+      if (linkElement.dataset.originalHref) {
+        linkElement.setAttribute("href", linkElement.dataset.originalHref);
+      }
+      return;
+    }
+
+    linkElement.removeAttribute("href");
+  });
+}
+
+function syncHomeLocationUI() {
+  updateHomeActionsByLocation();
+}
+
+function setupHomeLocationSelector() {
+  const locationSelect = document.getElementById("homeLocationSelect");
+  const locationOptions = Array.from(document.querySelectorAll("[data-home-location-option]"));
+
+  if (!locationSelect && !locationOptions.length) {
+    return;
+  }
+
+  if (locationSelect) {
+    locationSelect.addEventListener("change", syncHomeLocationUI);
+  }
+
+  if (locationOptions.length) {
+    locationOptions.forEach((option) => {
+      option.addEventListener("click", () => {
+        setSelectedHomeLocation(option.dataset.homeLocationOption || "zwijndrecht");
+        syncHomeLocationUI();
+      });
+    });
+  }
+
+  window.addEventListener("medux:languagechange", syncHomeLocationUI);
+  syncHomeLocationUI();
+}
+
 window.__meduxTranslate = translate;
 window.__meduxSetLanguage = applyLanguage;
 window.__meduxGetLanguage = getStoredLanguage;
@@ -399,6 +523,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   applyTheme(savedTheme);
   applyLanguage(savedLanguage);
+  setupHomeLocationSelector();
 
   const themeButton = document.querySelector("[data-theme-toggle]");
   if (themeButton) {

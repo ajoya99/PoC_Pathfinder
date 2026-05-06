@@ -1,6 +1,7 @@
 const DEFAULT_GRID_SIZE = Number(document.body.dataset.gridSize || 33);
 const DATA_FILE = document.body.dataset.layout || "data/ZV_layout.csv";
-const LAYOUT_CODE = DATA_FILE.toLowerCase().includes("wmo") ? "WMO" : "ZV";
+const layoutFileName = DATA_FILE.toLowerCase();
+const LAYOUT_CODE = layoutFileName.includes("wmo") ? "WMO" : layoutFileName.includes("ams") ? "AMS" : "ZV";
 const DIRECTIONS = [
   { dr: -1, dc: 0, key: "U" },
   { dr: 0, dc: 1, key: "R" },
@@ -24,6 +25,20 @@ const EFFORT_MODEL = {
   },
   minRangeFactor: 0.85,
   maxRangeFactor: 1.2,
+};
+const SCAN_ROUTE_PRESETS = {
+  ZV: {
+    start: { col: 14, row: 29 },
+    finalDrop: { col: 18, row: 29 },
+  },
+  WMO: {
+    start: { col: 23, row: 10 },
+    finalDrop: { col: 39, row: 10 },
+  },
+  AMS: {
+    start: { col: 14, row: 39 },
+    finalDrop: { col: 25, row: 39 },
+  },
 };
 
 // Layout calibration references from plan measurements.
@@ -60,6 +75,12 @@ const DISTANCE_CALIBRATION = {
     fallback: {
       horizontalMetersPerCell: 1.8,
       verticalMetersPerCell: 2.6,
+    },
+  },
+  AMS: {
+    fallback: {
+      horizontalMetersPerCell: 1,
+      verticalMetersPerCell: 1,
     },
   },
 };
@@ -160,6 +181,16 @@ const CONGESTION_INTELLIGENCE = {
       },
     ],
   },
+  AMS: {
+    densityScale: 1,
+    allDay: [],
+    windows: {
+      morning: [],
+      midday: [],
+      afternoon: [],
+    },
+    bottlenecks: [],
+  },
 };
 
 const gridElement = document.getElementById("grid");
@@ -176,6 +207,9 @@ const routeModeSelect = document.getElementById("routeModeSelect");
 const zoneConstraintSelect = document.getElementById("zoneConstraintSelect");
 const trafficTimeSelect = document.getElementById("trafficTimeSelect");
 const heatmapToggle = document.getElementById("heatmapToggle");
+const orderNumberInput = document.getElementById("orderNumberInput");
+const scanShowBestRouteBtn = document.getElementById("scanShowBestRouteBtn");
+const scanResetWindowBtn = document.getElementById("scanResetWindowBtn");
 const researchModeToggle = document.getElementById("researchModeToggle");
 const markLastToggle = document.getElementById("markLastToggle");
 const pointerCoords = document.getElementById("pointerCoords");
@@ -194,6 +228,8 @@ const researchObstructionButtons = Array.from(document.querySelectorAll("[data-r
 const researchExportBtn = document.getElementById("researchExportBtn");
 const researchSavedCount = document.getElementById("researchSavedCount");
 const researchPanel = document.getElementById("researchPanel");
+const plannerModeTabs = Array.from(document.querySelectorAll("[data-planner-mode]"));
+const plannerModePanels = Array.from(document.querySelectorAll("[data-mode-panel]"));
 const t = (key, params = {}) =>
   typeof window.__meduxTranslate === "function" ? window.__meduxTranslate(key, params) : key;
 const DISTANCE_SCALE = resolveDistanceScale(LAYOUT_CODE);
@@ -217,6 +253,12 @@ let activeResearchRun = null;
 let researchTimerHandle = null;
 let completedStopKeys = new Set();
 let showResearchPanel = false;
+let activePlannerMode = "select";
+const modeStates = {
+  scan: null,
+  select: null,
+  research: null,
+};
 
 bootstrap();
 
@@ -267,6 +309,13 @@ async function bootstrap() {
     setStatusKey(showHeatmapOverlay ? "status.heatmapOn" : "status.heatmapOff");
   });
 
+  orderNumberInput?.addEventListener("input", () => {
+    clearOrderNumberValidation();
+  });
+
+  scanShowBestRouteBtn?.addEventListener("click", showBestRouteForScanOrder);
+  scanResetWindowBtn?.addEventListener("click", resetScanWindow);
+
   researchModeToggle?.addEventListener("click", () => {
     setResearchPanelVisibility(!showResearchPanel);
   });
@@ -284,10 +333,275 @@ async function bootstrap() {
   researchExportBtn?.addEventListener("click", () => exportResearchDataCsv("manual"));
   window.addEventListener("medux:languagechange", handleLanguageChange);
 
+  setupPlannerModes();
+
   renderGrid();
   updateResearchPanel();
   updateRouteSummary();
   await loadStoredLayout();
+}
+
+function setupPlannerModes() {
+  if (!plannerModeTabs.length || !plannerModePanels.length) {
+    return;
+  }
+
+  plannerModeTabs.forEach((tabButton) => {
+    tabButton.addEventListener("click", () => {
+      setPlannerMode(String(tabButton.dataset.plannerMode || "select"));
+    });
+  });
+
+  const defaultTab = plannerModeTabs.find((button) => button.classList.contains("is-active"));
+  setPlannerMode(String(defaultTab?.dataset.plannerMode || "select"));
+}
+
+function setPlannerMode(modeName) {
+  savePlannerStateForMode(activePlannerMode);
+
+  activePlannerMode = modeName;
+  document.body.dataset.plannerMode = modeName;
+
+  plannerModeTabs.forEach((tabButton) => {
+    const isActive = tabButton.dataset.plannerMode === modeName;
+    tabButton.classList.toggle("is-active", isActive);
+    tabButton.setAttribute("aria-selected", isActive ? "true" : "false");
+    tabButton.tabIndex = isActive ? 0 : -1;
+  });
+
+  plannerModePanels.forEach((panel) => {
+    panel.hidden = panel.dataset.modePanel !== "select";
+  });
+
+  restorePlannerStateForMode(modeName);
+  renderGrid();
+  updateRouteSummary();
+
+  // Research panel is mode-driven: always on in research tab, always off otherwise.
+  setResearchPanelVisibility(modeName === "research");
+}
+
+function cloneCell(cell) {
+  if (!cell || typeof cell.row !== "number" || typeof cell.col !== "number") {
+    return null;
+  }
+  return { row: cell.row, col: cell.col };
+}
+
+function cloneCellList(cells = []) {
+  return Array.isArray(cells) ? cells.map((cell) => cloneCell(cell)).filter(Boolean) : [];
+}
+
+function snapshotPlannerState() {
+  return {
+    startCell: cloneCell(startCell),
+    goalCells: cloneCellList(goalCells),
+    lastGoalCell: cloneCell(lastGoalCell),
+    bestPath: cloneCellList(bestPath),
+    bestVisitOrder: cloneCellList(bestVisitOrder),
+    pendingLastPlacement: Boolean(pendingLastPlacement),
+    unreachableGoalKeys: Array.from(unreachableGoalKeys),
+    lastRouteResult: lastRouteResult ? { ...lastRouteResult } : null,
+    completedStopKeys: Array.from(completedStopKeys),
+  };
+}
+
+function restorePlannerStateFromSnapshot(snapshot) {
+  if (!snapshot) {
+    startCell = null;
+    goalCells = [];
+    lastGoalCell = null;
+    bestPath = [];
+    bestVisitOrder = [];
+    unreachableGoalKeys = new Set();
+    lastRouteResult = null;
+    completedStopKeys = new Set();
+    setPendingLastPlacement(false);
+    return;
+  }
+
+  startCell = cloneCell(snapshot.startCell);
+  goalCells = cloneCellList(snapshot.goalCells);
+  lastGoalCell = cloneCell(snapshot.lastGoalCell);
+  bestPath = cloneCellList(snapshot.bestPath);
+  bestVisitOrder = cloneCellList(snapshot.bestVisitOrder);
+  unreachableGoalKeys = new Set(snapshot.unreachableGoalKeys || []);
+  lastRouteResult = snapshot.lastRouteResult ? { ...snapshot.lastRouteResult } : null;
+  completedStopKeys = new Set(snapshot.completedStopKeys || []);
+  setPendingLastPlacement(Boolean(snapshot.pendingLastPlacement));
+}
+
+function savePlannerStateForMode(modeName) {
+  if (!modeName || !Object.prototype.hasOwnProperty.call(modeStates, modeName)) {
+    return;
+  }
+  modeStates[modeName] = snapshotPlannerState();
+}
+
+function restorePlannerStateForMode(modeName) {
+  if (!modeName || !Object.prototype.hasOwnProperty.call(modeStates, modeName)) {
+    return;
+  }
+  restorePlannerStateFromSnapshot(modeStates[modeName]);
+}
+
+function collectWalkableCells() {
+  const walkable = [];
+  for (let row = 0; row < currentGridSize; row += 1) {
+    for (let col = 0; col < currentGridSize; col += 1) {
+      if (gridData[row][col] === 0) {
+        walkable.push({ row, col });
+      }
+    }
+  }
+  return walkable;
+}
+
+function toZeroBasedCell(cell) {
+  if (!cell || typeof cell.col !== "number" || typeof cell.row !== "number") {
+    return null;
+  }
+
+  return {
+    row: cell.row - 1,
+    col: cell.col - 1,
+  };
+}
+
+function isCellWalkable(cell) {
+  return Boolean(cell) && isWalkable(cell.row, cell.col);
+}
+
+function getScanRoutePreset() {
+  const preset = SCAN_ROUTE_PRESETS[LAYOUT_CODE] || SCAN_ROUTE_PRESETS.AMS;
+  const start = toZeroBasedCell(preset.start);
+  const finalDrop = toZeroBasedCell(preset.finalDrop);
+
+  return {
+    start: isCellWalkable(start) ? start : null,
+    finalDrop: isCellWalkable(finalDrop) ? finalDrop : null,
+  };
+}
+
+function resolveDefaultStartCell(walkableCells) {
+  const fallback = walkableCells[0] || null;
+  let best = fallback;
+  for (const cell of walkableCells) {
+    if (!best) {
+      best = cell;
+      continue;
+    }
+    const betterRow = cell.row > best.row;
+    const sameRowBetterCol = cell.row === best.row && cell.col < best.col;
+    if (betterRow || sameRowBetterCol) {
+      best = cell;
+    }
+  }
+  return cloneCell(best);
+}
+
+function deriveOrderGoals(orderNumber, walkableCells, start, maxStops = 6) {
+  const uniqueGoals = [];
+  const used = new Set(start ? [cellKey(start)] : []);
+  const totalCells = walkableCells.length;
+
+  if (!totalCells) {
+    return uniqueGoals;
+  }
+
+  const normalizedOrder = Math.abs(Number(orderNumber) || 0);
+  const base = normalizedOrder % totalCells;
+  const offsetA = (normalizedOrder % 37) + 11;
+  const offsetB = (normalizedOrder % 19) + 5;
+
+  for (let index = 0; index < totalCells && uniqueGoals.length < maxStops; index += 1) {
+    const candidateIndex = (base + index * offsetA + Math.floor(index / 2) * offsetB) % totalCells;
+    const candidate = walkableCells[candidateIndex];
+    const key = cellKey(candidate);
+    if (used.has(key)) {
+      continue;
+    }
+    used.add(key);
+    uniqueGoals.push(cloneCell(candidate));
+  }
+
+  return uniqueGoals;
+}
+
+function setOrderNumberValidation(isInvalid) {
+  if (!orderNumberInput) {
+    return;
+  }
+
+  orderNumberInput.classList.toggle("is-invalid", Boolean(isInvalid));
+  orderNumberInput.setAttribute("aria-invalid", isInvalid ? "true" : "false");
+}
+
+function clearOrderNumberValidation() {
+  setOrderNumberValidation(false);
+}
+
+function showBestRouteForScanOrder() {
+  const rawOrderValue = String(orderNumberInput?.value || "").trim();
+  const orderValue = Number(rawOrderValue);
+  if (!rawOrderValue || !Number.isInteger(orderValue) || orderValue < 0) {
+    setOrderNumberValidation(true);
+    setStatusKey("status.orderNumberRequired");
+    return;
+  }
+
+  clearOrderNumberValidation();
+
+  const walkableCells = collectWalkableCells();
+  const preset = getScanRoutePreset();
+  const start = cloneCell(preset.start) || resolveDefaultStartCell(walkableCells);
+  const finalDrop = cloneCell(preset.finalDrop);
+  const goals = deriveOrderGoals(orderValue, walkableCells, start, finalDrop ? MAX_PICK_LOCATIONS - 1 : MAX_PICK_LOCATIONS);
+
+  if (finalDrop && !sameCell(finalDrop, start) && !goals.some((goal) => sameCell(goal, finalDrop))) {
+    goals.push(finalDrop);
+  }
+
+  if (!start || !goals.length) {
+    setStatusKey("status.noRoute");
+    return;
+  }
+
+  startCell = start;
+  goalCells = goals;
+  lastGoalCell = finalDrop && goals.some((goal) => sameCell(goal, finalDrop)) ? finalDrop : null;
+  clearPlannedRoute();
+  unreachableGoalKeys = new Set();
+  completedStopKeys = new Set();
+  setPendingLastPlacement(false);
+
+  runPlanner();
+
+  if (lastRouteResult) {
+    setStatusKey("status.scanRouteBuilt", { order: orderValue, count: goalCells.length });
+  }
+
+  savePlannerStateForMode("scan");
+}
+
+function resetScanWindow() {
+  if (orderNumberInput) {
+    orderNumberInput.value = "";
+  }
+  clearOrderNumberValidation();
+
+  startCell = null;
+  goalCells = [];
+  lastGoalCell = null;
+  clearPlannedRoute();
+  unreachableGoalKeys = new Set();
+  completedStopKeys = new Set();
+  setPendingLastPlacement(false);
+
+  renderGrid();
+  updateRouteSummary();
+  setStatusKey("status.scanReset");
+  savePlannerStateForMode("scan");
 }
 
 function setResearchPanelVisibility(isVisible) {
@@ -314,11 +628,17 @@ async function loadStoredLayout() {
     gridData = parseCsv(text);
     currentGridSize = gridData.length;
     resetSelections();
+    modeStates.select = snapshotPlannerState();
+    modeStates.scan = null;
+    modeStates.research = null;
     setStatusKey("status.loaded");
   } catch (error) {
     currentGridSize = DEFAULT_GRID_SIZE;
     gridData = buildDefaultGrid(currentGridSize);
     renderGrid();
+    modeStates.select = snapshotPlannerState();
+    modeStates.scan = null;
+    modeStates.research = null;
     setStatusKey("status.fallback", { file: DATA_FILE });
     console.error(error);
   }
@@ -373,15 +693,14 @@ function parseCsv(text) {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  if (rows.length !== DEFAULT_GRID_SIZE) {
-    throw new Error(`CSV for ${LAYOUT_CODE} must contain exactly ${DEFAULT_GRID_SIZE} rows.`);
+  if (!rows.length) {
+    throw new Error(`CSV for ${LAYOUT_CODE} is empty.`);
   }
 
-  return rows.map((line, rowIndex) => {
+  const parsedRows = rows.map((line, rowIndex) => {
     const values = line.split(/[,;\s]+/).filter(Boolean);
-
-    if (values.length !== DEFAULT_GRID_SIZE) {
-      throw new Error(`Row ${rowIndex + 1} must contain exactly ${DEFAULT_GRID_SIZE} values.`);
+    if (!values.length) {
+      throw new Error(`Row ${rowIndex + 1} is empty.`);
     }
 
     return values.map((value, colIndex) => {
@@ -392,6 +711,29 @@ function parseCsv(text) {
       return num;
     });
   });
+
+  const maxCols = parsedRows.reduce((max, row) => Math.max(max, row.length), 0);
+  const targetSize = Math.max(parsedRows.length, maxCols);
+  const paddedGrid = parsedRows.map((row) => {
+    const clipped = row.length > targetSize ? row.slice(0, targetSize) : row;
+    const missingCols = targetSize - clipped.length;
+    const padLeft = Math.floor(missingCols / 2);
+    const padRight = missingCols - padLeft;
+    return [...Array(padLeft).fill(7), ...clipped, ...Array(padRight).fill(7)];
+  });
+
+  const missingRows = targetSize - paddedGrid.length;
+  const padTop = Math.floor(missingRows / 2);
+  const padBottom = missingRows - padTop;
+  const obstacleRow = Array(targetSize).fill(7);
+  for (let index = 0; index < padTop; index += 1) {
+    paddedGrid.unshift([...obstacleRow]);
+  }
+  for (let index = 0; index < padBottom; index += 1) {
+    paddedGrid.push([...obstacleRow]);
+  }
+
+  return paddedGrid;
 }
 
 function clearPlannedRoute() {
@@ -1370,25 +1712,27 @@ function renderGrid() {
           }
         }
 
-        cell.addEventListener("click", () => {
-          if (clickTimer) {
-            window.clearTimeout(clickTimer);
-          }
+        if (activePlannerMode !== "scan") {
+          cell.addEventListener("click", () => {
+            if (clickTimer) {
+              window.clearTimeout(clickTimer);
+            }
 
-          clickTimer = window.setTimeout(() => {
-            handleCellClick(row, col);
-            clickTimer = null;
-          }, 140);
-        });
+            clickTimer = window.setTimeout(() => {
+              handleCellClick(row, col);
+              clickTimer = null;
+            }, 140);
+          });
 
-        cell.addEventListener("dblclick", (event) => {
-          event.preventDefault();
-          if (clickTimer) {
-            window.clearTimeout(clickTimer);
-            clickTimer = null;
-          }
-          handleCellDoubleClick(row, col);
-        });
+          cell.addEventListener("dblclick", (event) => {
+            event.preventDefault();
+            if (clickTimer) {
+              window.clearTimeout(clickTimer);
+              clickTimer = null;
+            }
+            handleCellDoubleClick(row, col);
+          });
+        }
       } else {
         cell.classList.add("obstacle", `obstacle-${value}`);
       }

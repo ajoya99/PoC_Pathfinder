@@ -23,6 +23,19 @@
         <h1 data-i18n="document.wmo.title">WMO PATHFINDER</h1>
       </header>
 
+      <section class="planner-mode-switch" role="tablist" aria-label="Planner mode" data-i18n-aria-label="planner.modeLabel">
+        <button class="planner-mode-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-planner-mode="scan" data-i18n="planner.modeScan">SCAN</button>
+        <button class="planner-mode-tab is-active" type="button" role="tab" aria-selected="true" tabindex="0" data-planner-mode="select" data-i18n="planner.modeSelect">SELECT</button>
+        <button class="planner-mode-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-planner-mode="research" data-i18n="planner.modeResearch">RESEARCH</button>
+      </section>
+
+      <section class="planner-mode-panels">
+        <section class="planner-mode-panel" data-mode-panel="scan" hidden>
+          <p class="hint-text mode-placeholder" data-i18n="planner.modeScanPending">Scan tab is ready. Content coming next.</p>
+        </section>
+
+        <section class="planner-mode-panel" data-mode-panel="select">
+
       <section class="controls-panel">
         <div class="planner-options">
           <label class="option-field">
@@ -45,13 +58,18 @@
             </select>
           </label>
 
-          <label class="option-field wide">
+          <label class="option-field wide scan-keep">
             <span data-i18n="planner.trafficWindow">Traffic window</span>
             <select id="trafficTimeSelect" aria-label="Traffic window">
               <option value="morning" data-i18n="traffic.morning">Morning</option>
               <option value="midday" data-i18n="traffic.midday">Midday</option>
               <option value="afternoon" data-i18n="traffic.afternoon">Afternoon</option>
             </select>
+          </label>
+
+          <label class="option-field wide scan-only-field scan-keep">
+            <span data-i18n="planner.orderNumber">Order Number</span>
+            <input id="orderNumberInput" type="number" min="0" step="1" inputmode="numeric" placeholder="Enter order number" data-i18n-placeholder="planner.orderNumberPlaceholder" />
           </label>
 
           <label class="option-toggle wide" for="heatmapToggle">
@@ -156,6 +174,11 @@
         <button id="resetButton" class="action-button secondary" type="button" data-i18n="planner.reset">RESET</button>
       </footer>
 
+      <footer class="button-bar scan-action-bar scan-only-field">
+        <button id="scanShowBestRouteBtn" class="action-button primary" type="button" data-i18n="planner.scanShowBestRoute">SHOW BEST ROUTE</button>
+        <button id="scanResetWindowBtn" class="action-button secondary" type="button" data-i18n="planner.scanResetWindow">RESET WINDOW</button>
+      </footer>
+
       <section id="resetDialog" class="reset-dialog" hidden>
         <div class="reset-dialog-card">
           <p class="reset-dialog-title" data-i18n="reset.title">Reset options</p>
@@ -166,6 +189,13 @@
             <button id="cancelResetButton" class="action-button primary compact" type="button" data-i18n="reset.cancel">Cancel</button>
           </div>
         </div>
+      </section>
+
+        </section>
+
+        <section class="planner-mode-panel" data-mode-panel="research" hidden>
+          <p class="hint-text mode-placeholder" data-i18n="planner.modeResearchPending">Research tab is ready. Content coming next.</p>
+        </section>
       </section>
     </section>
   </main>

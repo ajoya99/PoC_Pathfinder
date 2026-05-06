@@ -1,4 +1,5 @@
 {
   "git.path": "C:/Users/alvaro.joya machado/PortableGit/cmd/git.exe",
-  "python-envs.defaultEnvManager": "ms-python.python:system"
+  "python-envs.defaultEnvManager": "ms-python.python:system",
+  "liveServer.settings.port": 5501
 }
