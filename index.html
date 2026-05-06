@@ -20,11 +20,24 @@
       </div>
       <p class="mini-label" data-i18n="home.miniLabel">Distribution routing hub</p>
       <h1 class="landing-title" data-i18n="home.title">Multi-picker Route Planner</h1>
-      <p class="landing-subtitle" data-i18n="home.subtitle">Medux's Distribution Center in Zwijndrecht</p>
+
+      <div class="option-field landing-location">
+        <span data-i18n="home.locationLabel">Location</span>
+        <div class="landing-location-toggle" id="homeLocationToggle" role="group" aria-label="Location" data-i18n-aria-label="home.locationLabel" data-location="zwijndrecht">
+          <span class="landing-location-thumb" aria-hidden="true"></span>
+          <button class="landing-location-option is-active" type="button" data-home-location-option="zwijndrecht" aria-pressed="true">
+            <span data-i18n="home.location.zwijndrecht">Zwijndrecht</span>
+          </button>
+          <button class="landing-location-option" type="button" data-home-location-option="amsterdam" aria-pressed="false">
+            <span data-i18n="home.location.amsterdam">Amsterdam</span>
+          </button>
+        </div>
+      </div>
 
       <div class="landing-actions">
-        <a class="landing-button primary" href="zv.html" data-i18n="home.zvButton">ZV Pathfinder</a>
-        <a class="landing-button secondary" href="wmo.html" data-i18n="home.wmoButton">WMO Pathfinder</a>
+        <a class="landing-button primary" href="zv.html" data-i18n="home.zvButton" data-home-locations="zwijndrecht">ZV Pathfinder</a>
+        <a class="landing-button secondary" href="wmo.html" data-i18n="home.wmoButton" data-home-locations="zwijndrecht">WMO Pathfinder</a>
+        <a class="landing-button secondary" href="ams.html" data-i18n="home.amsButton" data-home-locations="amsterdam">AMS Pathfinder</a>
       </div>
     </section>
   </main>

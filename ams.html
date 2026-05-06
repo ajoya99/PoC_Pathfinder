@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title data-i18n="document.zv.title">ZV PATHFINDER</title>
+  <title data-i18n="document.ams.title">AMS PATHFINDER</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
   <script src="theme.js" defer></script>
 </head>
-<body data-layout="data/ZV_layout.csv" data-grid-size="33">
+<body data-layout="data/AMS_layout.csv" data-grid-size="50">
   <main class="app-shell">
     <section class="phone-frame">
       <header class="top-banner">
@@ -20,7 +20,7 @@
           </svg>
         </a>
         <p class="mini-label" data-i18n="planner.miniLabel">Multi-picker route planner</p>
-        <h1 data-i18n="document.zv.title">ZV PATHFINDER</h1>
+        <h1 data-i18n="document.ams.title">AMS PATHFINDER</h1>
       </header>
 
       <section class="planner-mode-switch" role="tablist" aria-label="Planner mode" data-i18n-aria-label="planner.modeLabel">
@@ -164,7 +164,7 @@
           <span><i class="legend-box path"></i><span data-i18n="legend.path">Best route</span></span>
         </div>
         <p id="pointerCoords" class="pointer-coords" aria-live="polite">Pointer: -</p>
-        <div id="grid" class="grid-board" aria-label="33 by 33 interactive pathfinding grid"></div>
+        <div id="grid" class="grid-board" aria-label="50 by 50 interactive pathfinding grid"></div>
       </section>
 
       <footer class="button-bar">
