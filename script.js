@@ -77,10 +77,33 @@ const DISTANCE_CALIBRATION = {
       verticalMetersPerCell: 2.6,
     },
   },
-  AMS: {
+  WMO: {
+    // TODO: Real floor plan measurements pending confirmation from user.
+    // Using 1 m/cell placeholders until verified dimensions are provided.
     fallback: {
       horizontalMetersPerCell: 1,
       verticalMetersPerCell: 1,
+    },
+  },
+  AMS: {
+    // Two orthogonal measurements from the AMS floor plan:
+    //   Vertical:   C3-R39 bottom edge → C3-R12 top edge  = 90 m
+    //   Horizontal: C3-R39 left edge   → C39-R39 right edge = 73 m
+    references: [
+      {
+        from: { col: 3, row: 39, edge: "bottom" },
+        to: { col: 3, row: 12, edge: "top" },
+        meters: 90,
+      },
+      {
+        from: { col: 3, row: 39, edge: "left" },
+        to: { col: 39, row: 39, edge: "right" },
+        meters: 73,
+      },
+    ],
+    fallback: {
+      horizontalMetersPerCell: 1.97,
+      verticalMetersPerCell: 3.21,
     },
   },
 };
