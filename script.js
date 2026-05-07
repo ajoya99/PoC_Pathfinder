@@ -78,11 +78,24 @@ const DISTANCE_CALIBRATION = {
     },
   },
   WMO: {
-    // TODO: Real floor plan measurements pending confirmation from user.
-    // Using 1 m/cell placeholders until verified dimensions are provided.
+    // Two orthogonal measurements from the WMO floor plan:
+    //   Horizontal: C2-R38 left edge  → C42-R38 right edge = 81 m
+    //   Vertical:   C2-R10 top edge   → C2-R38 bottom edge = 80 m
+    references: [
+      {
+        from: { col: 2, row: 38, edge: "left" },
+        to: { col: 42, row: 38, edge: "right" },
+        meters: 81,
+      },
+      {
+        from: { col: 2, row: 10, edge: "top" },
+        to: { col: 2, row: 38, edge: "bottom" },
+        meters: 80,
+      },
+    ],
     fallback: {
-      horizontalMetersPerCell: 1,
-      verticalMetersPerCell: 1,
+      horizontalMetersPerCell: 1.98,
+      verticalMetersPerCell: 2.76,
     },
   },
   AMS: {
