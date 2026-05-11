@@ -2,6 +2,7 @@ const THEME_STORAGE_KEY = "medux-ui-theme";
 const LANGUAGE_STORAGE_KEY = "medux-ui-language";
 const DEFAULT_THEME = "blue";
 const ALT_THEME = "berry";
+const THEME_CYCLE = ["blue", "berry", "mono"];
 const DEFAULT_LANGUAGE = "en";
 const ALT_LANGUAGE = "nl";
 
@@ -15,6 +16,7 @@ const TRANSLATIONS = {
     "common.backToHome": "Back to home",
     "common.themeToBerry": "Switch to berry palette",
     "common.themeToBlue": "Switch back to blue palette",
+    "common.themeToMono": "Switch to monochrome palette",
     "common.switchToDutch": "Switch to Dutch",
     "common.switchToEnglish": "Switch to English",
     "home.miniLabel": "Distribution routing hub",
@@ -161,6 +163,7 @@ const TRANSLATIONS = {
     "common.backToHome": "Terug naar start",
     "common.themeToBerry": "Wissel naar bessentint",
     "common.themeToBlue": "Wissel terug naar blauw palet",
+    "common.themeToMono": "Wissel naar monochroom palet",
     "common.switchToDutch": "Overschakelen naar Nederlands",
     "common.switchToEnglish": "Overschakelen naar Engels",
     "home.miniLabel": "Routehub distributiecentrum",
@@ -301,7 +304,7 @@ const TRANSLATIONS = {
 };
 
 function normalizeTheme(themeName) {
-  return themeName === ALT_THEME ? ALT_THEME : DEFAULT_THEME;
+  return THEME_CYCLE.includes(themeName) ? themeName : DEFAULT_THEME;
 }
 
 function normalizeLanguage(languageName) {
@@ -333,10 +336,22 @@ function updateThemeToggleButton(themeName) {
     return;
   }
 
-  const isBlue = themeName === DEFAULT_THEME;
-  toggleButton.textContent = isBlue ? "◐" : "◑";
-
-  const label = translate(isBlue ? "common.themeToBerry" : "common.themeToBlue");
+  const labelKeys = {
+    blue: "common.themeToBerry",
+    berry: "common.themeToMono",
+    mono: "common.themeToBlue",
+  };
+  
+  const themeIndex = THEME_CYCLE.indexOf(themeName);
+  const rotation = (themeIndex * 120) % 360;
+  
+  toggleButton.innerHTML = `<svg width="100%" height="100%" viewBox="0 0 30 30" style="transform: rotate(${rotation}deg); transition: transform 0.3s ease;">
+    <circle cx="15" cy="15" r="14" fill="#58b4ff" transform="rotate(0 15 15)"/>
+    <path d="M 15,15 A 14,14 0 0,1 12.14,1.86 L 15,15 Z" fill="#ef6faa"/>
+    <path d="M 12.14,1.86 A 14,14 0 0,1 27.74,10.74 L 15,15 Z" fill="#7a7a7a"/>
+  </svg>`;
+  
+  const label = translate(labelKeys[themeName] || "common.themeToBerry");
   toggleButton.setAttribute("title", label);
   toggleButton.setAttribute("aria-label", label);
 }
@@ -528,8 +543,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const themeButton = document.querySelector("[data-theme-toggle]");
   if (themeButton) {
     themeButton.addEventListener("click", () => {
-      const currentTheme = document.body.dataset.theme === ALT_THEME ? ALT_THEME : DEFAULT_THEME;
-      applyTheme(currentTheme === DEFAULT_THEME ? ALT_THEME : DEFAULT_THEME);
+      const currentTheme = normalizeTheme(document.body.dataset.theme);
+      const nextIndex = (THEME_CYCLE.indexOf(currentTheme) + 1) % THEME_CYCLE.length;
+      applyTheme(THEME_CYCLE[nextIndex]);
     });
   }
 

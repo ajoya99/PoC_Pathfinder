@@ -48,6 +48,35 @@ body[data-theme="berry"] {
   --frame-border: rgba(210, 74, 143, 0.28);
 }
 
+:root[data-theme="mono"],
+body[data-theme="mono"] {
+  --bg-1: #e8e8e8;
+  --bg-2: #f5f5f5;
+  --phone-edge: #bbbbbb;
+  --panel: #dddddd;
+  --panel-soft: #d0d0d0;
+  --frame-1: rgba(220, 220, 220, 0.98);
+  --frame-2: rgba(235, 235, 235, 0.98);
+  --surface-1: rgba(200, 200, 200, 0.96);
+  --surface-2: rgba(215, 215, 215, 0.96);
+  --line: rgba(0, 0, 0, 0.12);
+  --text: #111111;
+  --muted: #444444;
+  --accent: #7a7a7a;
+  --accent-2: #555555;
+  --soft-accent-bg: rgba(0, 0, 0, 0.08);
+  --soft-accent-border: rgba(0, 0, 0, 0.18);
+  --soft-accent-text: #111111;
+  --glow: rgba(0, 0, 0, 0.04);
+  --frame-border: rgba(0, 0, 0, 0.14);
+  --goal: #ffd54a;
+  --start: #ffe97d;
+  --last: #d59bff;
+  --path: #ff3b30;
+  --danger: #f0f0f0;
+}
+
+
 * {
   box-sizing: border-box;
 }
@@ -119,6 +148,12 @@ input {
   filter: brightness(1.08);
 }
 
+.theme-toggle svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+ 
 .landing-logo {
   display: flex;
   justify-content: center;
@@ -566,6 +601,38 @@ body[data-planner-mode="scan"] .grid-cell.free {
   margin: 12px 0 0;
   font-size: 0.85rem;
   line-height: 1.4;
+}
+
+body[data-theme="mono"] .hint-text {
+  color: #ffffff;
+}
+
+body[data-theme="mono"] .legend span {
+  color: #ffffff;
+}
+
+body[data-theme="mono"] .legend-box.free {
+  background: #888888;
+}
+
+body[data-theme="mono"] .grid-cell.free {
+  --cell-fill: #f5f5f5;
+}
+
+body[data-theme="mono"] .grid-cell.route {
+  --cell-fill: #ff3b30;
+}
+
+body[data-theme="mono"] .grid-cell.goal {
+  --cell-fill: #ffd54a;
+}
+
+body[data-theme="mono"] .grid-cell.start {
+  --cell-fill: #ffe97d;
+}
+
+body[data-theme="mono"] .grid-cell.goal-last {
+  --cell-fill: #d59bff;
 }
 
 .route-metrics {
