@@ -180,7 +180,7 @@ const CONGESTION_INTELLIGENCE = {
     ],
   },
   WMO: {
-    densityScale: 0.75,
+    densityScale: 0.85,
     allDay: [],
     windows: {
       morning: [
