@@ -643,6 +643,10 @@ body[data-theme="mono"] .landing-button {
   color: #ffffff;
 }
 
+body[data-theme="mono"] .landing-location-option {
+  color: #ffffff;
+}
+
 .route-metrics {
   margin-top: 10px;
   display: grid;
