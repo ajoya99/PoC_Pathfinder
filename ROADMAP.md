@@ -320,7 +320,7 @@ The grid is abstract — each cell does not correspond to a fixed number of mete
 ### Phase 8 — Localization and Theme
 
 - Added full EN/NL translation coverage with the `theme.js` system.
-- Added two visual themes: blue (default) and berry.
+- Added visual themes: blue (default), berry, and mono.
 - Theme and language persist in `localStorage` so they survive page navigation.
 - Added smooth CSS transitions for theme switching.
 
@@ -402,7 +402,7 @@ The congestion model overlays penalty multipliers on grid cells. When the route 
 |---|---|
 | Morning | Truck arrivals and restocking in lower zones |
 | Midday | Product placement waves, inspection flows |
-| Afternoon | Generally lighter (currently no penalties defined for WMO afternoon) |
+| Afternoon | Generally lighter but can still include localized congestion hotspots |
 
 Congestion zones are defined separately for each layout (ZV and WMO) and each time window. `allDay` zones are always active regardless of the selected window. `bottleneck` zones represent persistent chronic congestion points.
 
@@ -415,9 +415,13 @@ Congestion zones are defined separately for each layout (ZV and WMO) and each ti
 
 ### Current Congestion Profile (WMO)
 
-- **All day:** Top-middle-left inspection flow near row 10, col 13 (radius 3, penalty ×1.05).
-- **Morning:** Lower-left delivery zone (bottom 40% × left 40%, penalty ×0.95 — slight reduction reflecting lighter WMO morning traffic).
-- **Bottleneck:** Inspection output at row 10, col 13 (radius 1, penalty ×0.90).
+- **All day:** None.
+- **Morning:** Three circle zones at C39-R11 (radius 7, medium-high), C14-R11 (radius 5, medium), and C8-R30 (radius 5, medium).
+- **Midday:** Three circle zones at C39-R11 (radius 5, medium), C14-R11 (radius 5, medium-high), and C8-R30 (radius 4, medium).
+- **Afternoon:** Three circle zones at C39-R11, C14-R11, and C8-R30 (all radius 4, medium).
+- **Bottlenecks:** None.
+
+WMO uses `densityScale: 0.85` to make congestion overlays and scoring more visible during route ranking.
 
 > These values are initial estimates based on operational knowledge. They should be refined with real picker movement data once the tool is deployed.
 
@@ -468,12 +472,13 @@ The selected language is saved to `localStorage` as `medux-ui-language`. When na
 
 ### Themes
 
-Two color themes are provided:
+Three color themes are provided:
 
 | Theme | Primary color | Intended feel |
 |---|---|---|
 | `blue` | Medux corporate blue | Professional, default |
 | `berry` | Deep purple/magenta | Alternative for preference or accessibility |
+| `mono` | Light grayscale | High-contrast UI variant while preserving route/stop grid colors |
 
 Theme is stored as `medux-ui-theme` in `localStorage`. Theme switching applies a CSS `data-theme` attribute to `<html>`, which triggers CSS variable overrides.
 
@@ -607,7 +612,7 @@ The current architecture makes integration straightforward: `script.js` exposes 
 | **S (Start)** | The picker's starting position on the floor |
 | **Zone constraint** | A user preference to prefer or avoid the top/bottom half of the warehouse |
 | **Traffic window** | Time-of-day selection (Morning / Midday / Afternoon) that determines which congestion profiles are active |
-| **Theme** | Visual color scheme of the UI (Blue or Berry) |
+| **Theme** | Visual color scheme of the UI (Blue, Berry, or Mono) |
 | **i18n** | Internationalization — the system that manages EN/NL language translation |
 | **localStorage** | Browser storage that persists user preferences (language, theme) across sessions |
 | **GitHub Pages** | Free static website hosting service provided by GitHub |
@@ -642,6 +647,7 @@ The current architecture makes integration straightforward: `script.js` exposes 
 | May 2026 | v1.3.3 | Fix: metrics stacking vertically on narrow screens — removed mobile media query collapse to preserve 4-column grid |
 | May 2026 | v1.3.4 | Hide: pointer coordinate display hidden with `display: none` to declutter mobile UI (logic preserved for future re-enable) |
 | May 2026 | v1.3.5 | Layout: moved color legend to between hint text and grid with proper spacing for improved prominence
+| May 2026 | v1.4.0 | Theme system expanded/refined to Blue-Berry-Mono cycle with rotating theme indicator; WMO congestion profile updated to time-window circle hotspots and increased `densityScale` |
 
 ---
 
