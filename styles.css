@@ -635,20 +635,11 @@ body[data-theme="mono"] .grid-cell.goal-last {
   --cell-fill: #d59bff;
 }
 
-body[data-theme="mono"] .landing-button.primary {
+body[data-theme="mono"] .theme-toggle {
   color: #ffffff;
 }
 
-body[data-theme="mono"] .landing-button.secondary {
-  color: #000000;
-  background: rgba(0, 0, 0, 0.14);
-}
-
-body[data-theme="mono"] .landing-button.is-allowed {
-  color: #ffffff;
-}
-
-body[data-theme="mono"] .landing-location-option.is-active {
+body[data-theme="mono"] .landing-button {
   color: #ffffff;
 }
 
