@@ -19,7 +19,7 @@ Users can:
 - Toggle traffic heatmap overlay.
 - View effort, turns, and estimated time range (displayed in 4-column metric grid).
 - See color-coded legend for cell types (Free, Start, Stops, Last, Best route).
-- Switch language (EN/NL) and theme (blue/berry).
+- Switch language (EN/NL) and theme (blue/berry/mono).
 - Enable Research Mode to time real picker runs and log obstructions.
 
 ## Run Locally (No Node Required)
@@ -107,7 +107,7 @@ Displayed output:
 ## Localization and Theme
 
 - Translations: English and Dutch.
-- Themes: blue and berry.
+- Themes: blue, berry, and mono.
 - Theme and language are persisted in localStorage.
 
 ## Project Structure
