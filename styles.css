@@ -647,6 +647,16 @@ body[data-theme="mono"] .landing-location-option {
   color: #ffffff;
 }
 
+body[data-theme="mono"] #researchModeToggle,
+body[data-theme="mono"] .research-panel .research-title,
+body[data-theme="mono"] .research-panel .research-run-label,
+body[data-theme="mono"] .research-panel .metric-label,
+body[data-theme="mono"] .research-panel .metric-value,
+body[data-theme="mono"] .research-panel .action-button,
+body[data-theme="mono"] .research-panel .estimate-note {
+  color: #ffffff;
+}
+
 .route-metrics {
   margin-top: 10px;
   display: grid;
