@@ -7,8 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css?v=20260512d" />
-  <script src="theme.js?v=20260512d" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260527a" />
+  <script src="theme.js?v=20260527a" defer></script>
 </head>
 <body data-layout="data/WMO_layout.csv" data-grid-size="43">
   <main class="app-shell">
@@ -26,7 +26,7 @@
       <section class="planner-mode-switch" role="tablist" aria-label="Planner mode" data-i18n-aria-label="planner.modeLabel">
         <button class="planner-mode-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-planner-mode="scan" data-i18n="planner.modeScan">SCAN</button>
         <button class="planner-mode-tab is-active" type="button" role="tab" aria-selected="true" tabindex="0" data-planner-mode="select" data-i18n="planner.modeSelect">SELECT</button>
-        <button class="planner-mode-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-planner-mode="research" data-i18n="planner.modeResearch">RESEARCH</button>
+        <button class="planner-mode-tab" type="button" role="tab" aria-selected="false" tabindex="-1" data-planner-mode="product" data-i18n="planner.modeProduct">PRODUCT</button>
       </section>
 
       <section class="planner-mode-panels">
@@ -67,9 +67,26 @@
             </select>
           </label>
 
-          <label class="option-field wide scan-only-field scan-keep">
+          <label class="option-field wide scan-only-field scan-keep scan-not-product">
             <span data-i18n="planner.orderNumber">Order Number</span>
             <input id="orderNumberInput" type="number" min="0" step="1" inputmode="numeric" placeholder="Enter order number" data-i18n-placeholder="planner.orderNumberPlaceholder" />
+          </label>
+
+          <label class="option-field wide product-only-field scan-keep" for="productNameSelect">
+            <span data-i18n="planner.productName">Product name</span>
+            <select id="productNameSelect" aria-label="Product name">
+              <option value="" data-i18n="planner.productNamePlaceholder">-- Select a product --</option>
+              <option value="shower-stool" data-i18n="product.shower-stool">Shower stool</option>
+              <option value="wheelchair" data-i18n="product.wheelchair">Wheelchair</option>
+              <option value="commode-chair" data-i18n="product.commode-chair">Commode chair</option>
+              <option value="back-support" data-i18n="product.back-support">Back support</option>
+              <option value="bed-reading-table" data-i18n="product.bed-reading-table">Bed reading table</option>
+              <option value="height-adjustable-bed" data-i18n="product.height-adjustable-bed">Height-adjustable bed</option>
+              <option value="standard-mattress" data-i18n="product.standard-mattress">Standard mattress</option>
+              <option value="bedpan" data-i18n="product.bedpan">Bedpan</option>
+              <option value="shower-chair" data-i18n="product.shower-chair">Shower chair</option>
+              <option value="toilet-raiser-10cm" data-i18n="product.toilet-raiser-10cm">Toilet raiser 10 cm</option>
+            </select>
           </label>
 
           <label class="option-toggle wide" for="heatmapToggle">
@@ -193,13 +210,13 @@
 
         </section>
 
-        <section class="planner-mode-panel" data-mode-panel="research" hidden>
-          <p class="hint-text mode-placeholder" data-i18n="planner.modeResearchPending">Research tab is ready. Content coming next.</p>
+        <section class="planner-mode-panel" data-mode-panel="product" hidden>
+          <p class="hint-text mode-placeholder" data-i18n="planner.modeProductPending">Product tab is ready. Content coming next.</p>
         </section>
       </section>
     </section>
   </main>
 
-  <script src="script.js?v=20260512d" defer></script>
+  <script src="script.js?v=20260527a" defer></script>
 </body>
 </html>

@@ -41,7 +41,46 @@ const SCAN_ROUTE_PRESETS = {
   },
 };
 
-// Layout calibration references from plan measurements.
+// Product-to-cell mapping per layout. Coordinates are 0-based.
+// Can be fine-tuned once exact aisle positions are confirmed.
+const PRODUCT_LOCATIONS = {
+  ZV: {
+    "shower-stool":          { row: 4,  col: 5  },
+    "wheelchair":            { row: 4,  col: 22 },
+    "commode-chair":         { row: 10, col: 5  },
+    "back-support":          { row: 10, col: 22 },
+    "bed-reading-table":     { row: 16, col: 5  },
+    "height-adjustable-bed": { row: 16, col: 22 },
+    "standard-mattress":     { row: 22, col: 5  },
+    "bedpan":                { row: 22, col: 22 },
+    "shower-chair":          { row: 28, col: 5  },
+    "toilet-raiser-10cm":    { row: 28, col: 15 },
+  },
+  WMO: {
+    "shower-stool":          { row: 5,  col: 5  },
+    "wheelchair":            { row: 5,  col: 30 },
+    "commode-chair":         { row: 12, col: 5  },
+    "back-support":          { row: 12, col: 30 },
+    "bed-reading-table":     { row: 19, col: 5  },
+    "height-adjustable-bed": { row: 19, col: 30 },
+    "standard-mattress":     { row: 26, col: 5  },
+    "bedpan":                { row: 26, col: 30 },
+    "shower-chair":          { row: 33, col: 5  },
+    "toilet-raiser-10cm":    { row: 33, col: 30 },
+  },
+  AMS: {
+    "shower-stool":          { row: 5,  col: 5  },
+    "wheelchair":            { row: 5,  col: 35 },
+    "commode-chair":         { row: 14, col: 5  },
+    "back-support":          { row: 14, col: 35 },
+    "bed-reading-table":     { row: 22, col: 5  },
+    "height-adjustable-bed": { row: 22, col: 35 },
+    "standard-mattress":     { row: 30, col: 5  },
+    "bedpan":                { row: 30, col: 35 },
+    "shower-chair":          { row: 38, col: 5  },
+    "toilet-raiser-10cm":    { row: 38, col: 25 },
+  },
+};
 // Coordinates are 1-based in Col-Row form, with edge anchors.
 const DISTANCE_CALIBRATION = {
   ZV: {
@@ -348,6 +387,7 @@ const researchObstructionButtons = Array.from(document.querySelectorAll("[data-r
 const researchExportBtn = document.getElementById("researchExportBtn");
 const researchSavedCount = document.getElementById("researchSavedCount");
 const researchPanel = document.getElementById("researchPanel");
+const productNameSelect = document.getElementById("productNameSelect");
 const plannerModeTabs = Array.from(document.querySelectorAll("[data-planner-mode]"));
 const plannerModePanels = Array.from(document.querySelectorAll("[data-mode-panel]"));
 const t = (key, params = {}) =>
@@ -378,6 +418,7 @@ const modeStates = {
   scan: null,
   select: null,
   research: null,
+  product: null,
 };
 
 bootstrap();
@@ -433,8 +474,20 @@ async function bootstrap() {
     clearOrderNumberValidation();
   });
 
-  scanShowBestRouteBtn?.addEventListener("click", showBestRouteForScanOrder);
-  scanResetWindowBtn?.addEventListener("click", resetScanWindow);
+  scanShowBestRouteBtn?.addEventListener("click", () => {
+    if (activePlannerMode === "product") {
+      showBestRouteForProduct();
+    } else {
+      showBestRouteForScanOrder();
+    }
+  });
+  scanResetWindowBtn?.addEventListener("click", () => {
+    if (activePlannerMode === "product") {
+      resetProductWindow();
+    } else {
+      resetScanWindow();
+    }
+  });
 
   researchModeToggle?.addEventListener("click", () => {
     setResearchPanelVisibility(!showResearchPanel);
@@ -496,9 +549,7 @@ function setPlannerMode(modeName) {
   restorePlannerStateForMode(modeName);
   renderGrid();
   updateRouteSummary();
-
-  // Research panel is mode-driven: always on in research tab, always off otherwise.
-  setResearchPanelVisibility(modeName === "research");
+  setResearchPanelVisibility(false);
 }
 
 function cloneCell(cell) {
@@ -724,6 +775,91 @@ function resetScanWindow() {
   savePlannerStateForMode("scan");
 }
 
+function resetProductWindow() {
+  if (productNameSelect) {
+    productNameSelect.value = "";
+  }
+
+  startCell = null;
+  goalCells = [];
+  lastGoalCell = null;
+  clearPlannedRoute();
+  unreachableGoalKeys = new Set();
+  completedStopKeys = new Set();
+  setPendingLastPlacement(false);
+
+  renderGrid();
+  updateRouteSummary();
+  setStatusKey("status.productReset");
+  savePlannerStateForMode("product");
+}
+
+function findNearestWalkable(target, walkableCells) {
+  if (!target || !walkableCells.length) {
+    return null;
+  }
+  let best = null;
+  let bestDist = Infinity;
+  for (const cell of walkableCells) {
+    const dist = Math.abs(cell.row - target.row) + Math.abs(cell.col - target.col);
+    if (dist < bestDist) {
+      best = cell;
+      bestDist = dist;
+    }
+  }
+  return cloneCell(best);
+}
+
+function showBestRouteForProduct() {
+  const selectedProduct = productNameSelect?.value;
+  if (!selectedProduct) {
+    setStatusKey("status.productRequired");
+    return;
+  }
+
+  const layoutProducts = PRODUCT_LOCATIONS[LAYOUT_CODE] || {};
+  const rawTarget = layoutProducts[selectedProduct];
+  if (!rawTarget) {
+    setStatusKey("status.productNotFound");
+    return;
+  }
+
+  const walkableCells = collectWalkableCells();
+  const preset = getScanRoutePreset();
+  const start = cloneCell(preset.start) || resolveDefaultStartCell(walkableCells);
+  const finalDrop = cloneCell(preset.finalDrop);
+
+  const productCell = isCellWalkable(rawTarget)
+    ? cloneCell(rawTarget)
+    : findNearestWalkable(rawTarget, walkableCells);
+
+  if (!productCell) {
+    setStatusKey("status.productUnreachable");
+    return;
+  }
+
+  const goals = [productCell];
+  if (finalDrop && !sameCell(finalDrop, start) && !sameCell(finalDrop, productCell)) {
+    goals.push(finalDrop);
+  }
+
+  startCell = start;
+  goalCells = goals;
+  lastGoalCell = finalDrop && goals.some((g) => sameCell(g, finalDrop)) ? finalDrop : null;
+  clearPlannedRoute();
+  unreachableGoalKeys = new Set();
+  completedStopKeys = new Set();
+  setPendingLastPlacement(false);
+
+  runPlanner();
+
+  if (lastRouteResult) {
+    setStatusKey("status.productRouteBuilt", { product: t(`product.${selectedProduct}`) });
+  }
+
+  savePlannerStateForMode("product");
+}
+
 function setResearchPanelVisibility(isVisible) {
   showResearchPanel = Boolean(isVisible);
 
@@ -750,6 +886,7 @@ async function loadStoredLayout() {
     resetSelections();
     modeStates.select = snapshotPlannerState();
     modeStates.scan = null;
+    modeStates.product = null;
     modeStates.research = null;
     setStatusKey("status.loaded");
   } catch (error) {
@@ -758,6 +895,7 @@ async function loadStoredLayout() {
     renderGrid();
     modeStates.select = snapshotPlannerState();
     modeStates.scan = null;
+    modeStates.product = null;
     modeStates.research = null;
     setStatusKey("status.fallback", { file: DATA_FILE });
     console.error(error);
