@@ -1,9 +1,10 @@
 # DC Pathfinder PoC
 
-Interactive route-planning proof of concept for two warehouse layouts:
+Interactive route-planning proof of concept for three warehouse layouts:
 
 - ZV
 - WMO
+- AMS
 
 The app is a static web application and is deployed with GitHub Pages.
 
@@ -11,9 +12,11 @@ The app is a static web application and is deployed with GitHub Pages.
 
 Users can:
 
+- Switch planner modes (SCAN / SELECT / PRODUCT).
 - Select a START cell on the grid.
 - Add up to 12 pick locations.
 - Optionally mark a final drop cell (L).
+- In PRODUCT mode, choose a product from the dropdown and generate a route using preset start/final-drop anchors per layout.
 - Compare route outcomes across BFS, Dijkstra, Greedy Best-First, and A*.
 - Tune route behavior with route goal, zone constraint, and traffic window.
 - Toggle traffic heatmap overlay.
@@ -40,20 +43,24 @@ http://localhost:8080
 
 ## How To Use
 
-1. Open the landing page and choose ZV or WMO.
-2. Tap one free cell (value 0) to set START.
-3. Tap free cells to add pick locations.
-4. Optional final drop (L):
+1. Open the landing page and choose ZV, WMO, or AMS.
+2. Choose planner mode:
+  - SCAN: order-number assisted planning
+  - SELECT: manual pick-location planning
+  - PRODUCT: single-product route planning
+3. Tap one free cell (value 0) to set START.
+4. Tap free cells to add pick locations.
+5. Optional final drop (L):
    - Tap MARK FINAL DROP and then tap a pick location, or
    - Double-tap a pick location.
-5. Choose route settings:
+6. Choose route settings:
    - Route goal (Balanced / Fastest / Least turns)
    - Zone constraint
    - Traffic window
    - Heatmap toggle
    - Research Mode toggle (hidden by default — tap to enable)
-6. Tap GO.
-7. Use RESET or UNDO LAST PICK as needed.
+7. Tap GO, or use SHOW BEST ROUTE in SCAN/PRODUCT flows.
+8. Use RESET, RESET WINDOW, or UNDO LAST PICK as needed.
 
 Research Mode (optional):
 
@@ -91,6 +98,7 @@ Rules:
 ## Traffic, Effort, and Metrics
 
 - Layout-specific congestion profiles exist for ZV and WMO.
+- AMS is supported in the planner flow; congestion overlays can be tuned per scenario.
 - Time windows:
   - Morning
   - Midday
@@ -117,13 +125,17 @@ PoC_Pathfinder/
   index.html                    # Landing page
   zv.html                       # ZV planner
   wmo.html                      # WMO planner
+  ams.html                      # AMS planner
   script.js                     # Planner logic and algorithms
   theme.js                      # i18n and theme/language toggles
   styles.css                    # Shared UI styling
   data/
     ZV_layout.csv               # ZV grid layout
     WMO_layout.csv              # WMO grid layout
+    AMS_layout.csv              # AMS grid layout
     logo_medux.png              # Logo asset
+  scripts/
+    multi_layout_scenario_heatmaps.py   # Standalone congestion heatmap generator
   .github/workflows/
     deploy-pages.yml            # GitHub Pages deployment workflow
 ```
