@@ -30,10 +30,11 @@
 
 ### The Organization
 
-**Medux** is a medical aids distribution company operating a Distribution Center (DC) in Zwijndrecht, the Netherlands. The DC handles two distinct product types, each managed in a separate warehouse zone:
+**Medux** is a medical aids distribution company operating a Distribution Center (DC) in Zwijndrecht, the Netherlands. The PoC currently covers three warehouse layouts:
 
 - **ZV** — Zorghulpmiddelen (medical devices, durable goods)
 - **WMO** — Wmo-classified products (social support products under the Dutch WMO act)
+- **AMS** — Additional layout used in the same planning workflow
 
 ### The Daily Challenge
 
@@ -60,13 +61,14 @@ The PoC is intentionally kept as a **static web application** (plain HTML, CSS, 
 
 ## 2. What This Program Does
 
-The application has three pages:
+The application has four pages:
 
 | Page | File | Purpose |
 |---|---|---|
 | Landing page | `index.html` | Warehouse selection hub |
 | ZV Planner | `zv.html` | Route planner for the ZV warehouse floor |
 | WMO Planner | `wmo.html` | Route planner for the WMO warehouse floor |
+| AMS Planner | `ams.html` | Route planner for the AMS warehouse floor |
 
 ### User Flow
 
@@ -75,7 +77,9 @@ Landing Page
     │
     ├─► ZV Pathfinder  ──► zv.html (loads ZV_layout.csv, 33×33 grid)
     │
-    └─► WMO Pathfinder ──► wmo.html (loads WMO_layout.csv, 43×41 grid)
+        ├─► WMO Pathfinder ──► wmo.html (loads WMO_layout.csv, 43×41 grid)
+        │
+        └─► AMS Pathfinder ──► ams.html (loads AMS_layout.csv, 50×50 grid)
 ```
 
 Once on a planner page, the user:
@@ -83,13 +87,17 @@ Once on a planner page, the user:
 1. **Taps a free cell** → sets the START position (S).
 2. **Taps additional free cells** → adds pick locations (1–12).
 3. **Optionally marks a Final Drop (L)** via the MARK FINAL DROP button or by double-tapping a pick location. L is always visited last.
-4. **Configures route settings**:
+4. **Chooses planner mode**:
+   - **SCAN** for order-number assisted route planning
+   - **SELECT** for manual pick-location planning
+   - **PRODUCT** for product-dropdown based route planning
+5. **Configures route settings**:
    - Route Goal: Balanced / Fastest / Least Turns
    - Zone Constraint: None / Prefer Top / Prefer Bottom / Avoid Top / Avoid Bottom
    - Traffic Window: Morning / Midday / Afternoon
    - Heatmap overlay toggle
-5. **Presses GO** → the engine computes and displays the best route.
-6. Views metrics: **Time range**, **Meters**, **Turns**, **Effort (EU)**.
+6. **Presses GO** (or SHOW BEST ROUTE for SCAN/PRODUCT flows) → the engine computes and displays the best route.
+7. Views metrics: **Time range**, **Meters**, **Turns**, **Effort (EU)**.
 
 ---
 
@@ -101,6 +109,7 @@ PoC_Pathfinder/
 ├── index.html          # Landing page — warehouse selector
 ├── zv.html             # ZV planner page
 ├── wmo.html            # WMO planner page
+├── ams.html            # AMS planner page
 │
 ├── script.js           # All route engine logic, grid rendering, and UI behavior
 ├── theme.js            # i18n (EN/NL translations) and theme/language system
@@ -109,10 +118,13 @@ PoC_Pathfinder/
 ├── README.md           # Quick-start guide and usage reference
 ├── ROADMAP.md          # This file — development history and implementation guide
 │
-└── data/
-    ├── ZV_layout.csv   # 33×33 grid encoding the ZV warehouse floor
-    ├── WMO_layout.csv  # 43×41 grid encoding the WMO warehouse floor
-    └── logo_medux.png  # Medux brand logo for the landing page
+├── data/
+│   ├── ZV_layout.csv   # 33×33 grid encoding the ZV warehouse floor
+│   ├── WMO_layout.csv  # 43×41 grid encoding the WMO warehouse floor
+│   ├── AMS_layout.csv  # 50×50 grid encoding the AMS warehouse floor
+│   └── logo_medux.png  # Medux brand logo for the landing page
+└── scripts/
+        └── multi_layout_scenario_heatmaps.py  # Standalone 3x4 scenario heatmap generator
 ```
 
 ### Why This Structure?
@@ -159,6 +171,7 @@ The grid is read **row by row**, **top to bottom**, **left to right**. Each comm
 |---|---|---|---|
 | ZV | 33 | 33 | 1,089 |
 | WMO | 41 | 43 | 1,763 |
+| AMS | 50 | 50 | 2,500 |
 
 ### How the Grid Is Loaded
 
@@ -646,8 +659,12 @@ The current architecture makes integration straightforward: `script.js` exposes 
 | May 2026 | v1.3.2 | Layout: reduced metric pill font sizes (labels 0.62→0.55rem, values 0.8→0.7rem) for better mobile fit |
 | May 2026 | v1.3.3 | Fix: metrics stacking vertically on narrow screens — removed mobile media query collapse to preserve 4-column grid |
 | May 2026 | v1.3.4 | Hide: pointer coordinate display hidden with `display: none` to declutter mobile UI (logic preserved for future re-enable) |
-| May 2026 | v1.3.5 | Layout: moved color legend to between hint text and grid with proper spacing for improved prominence
+| May 2026 | v1.3.5 | Layout: moved color legend to between hint text and grid with proper spacing for improved prominence |
 | May 2026 | v1.4.0 | Theme system expanded/refined to Blue-Berry-Mono cycle with rotating theme indicator; WMO congestion profile updated to time-window circle hotspots and increased `densityScale` |
+| May 2026 | v1.5.0 | Added AMS planner page and AMS layout support on the landing page and shared routing flow |
+| May 2026 | v1.5.1 | Added PRODUCT planner mode: product dropdown, preset start/final-drop behavior, and dedicated product routing statuses/translations |
+| May 2026 | v1.5.2 | Added standalone scenario heatmap generator script and exported multi-layout heatmap image for analysis deliverables |
+| Jun 2026 | v1.5.3 | Documentation sync: aligned README and ROADMAP with AMS scope, planner modes, and current project structure |
 
 ---
 
